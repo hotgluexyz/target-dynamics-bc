@@ -30,6 +30,18 @@ class TargetDynamicsV2(TargetHotglue):
             parse_env_config=parse_env_config,
             validate_config=validate_config,
         )
+        self.dynamics_client = DynamicsClient(self.config)
+        self.reference_data: ReferenceData = self.get_reference_data()
+
+    def get_reference_data(self) -> ReferenceData:
+        self.logger.info(f"Getting reference data...")
+        
+        reference_data: ReferenceData = ReferenceData()
+        _, _, companies = self.dynamics_client.get_companies()
+        reference_data["companies"] = companies
+
+        self.logger.info(f"Done getting reference data...")
+        return reference_data
 
     config_jsonschema = th.PropertiesList(
         th.Property(
@@ -49,11 +61,6 @@ class TargetDynamicsV2(TargetHotglue):
         ),
         th.Property(
             "refresh_token",
-            th.StringType,
-            required=True
-        ),
-        th.Property(
-            "org",
             th.StringType,
             required=True
         ),
