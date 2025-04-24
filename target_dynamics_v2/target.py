@@ -4,17 +4,14 @@ from singer_sdk.target_base import Target
 from singer_sdk import typing as th
 from target_hotglue.target import TargetHotglue
 
-from target_dynamics_v2.sinks import (
-    ContactsSink,
-    OpportunitiesSink,
-)
-
+from target_dynamics_v2.client import DynamicsClient
+from target_dynamics_v2.sinks.customer_sink import CustomerSink
+from target_dynamics_v2.utils import ReferenceData
 
 class TargetDynamicsV2(TargetHotglue):
     """Sample target for DynamicsV2."""
     SINK_TYPES = [
-        ContactsSink,
-        OpportunitiesSink,
+        CustomerSink
     ]
     name = "target-dynamics-v2"
     def __init__(
