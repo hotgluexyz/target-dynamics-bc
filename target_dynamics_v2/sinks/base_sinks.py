@@ -17,28 +17,23 @@ class DynamicsBaseBatchSink(HotglueBatchSink):
         self.dynamics_client: DynamicsClient = self._target.dynamics_client
 
     def make_batch_request(self, records: List[dict]):
-        headers = {"Prefer": "odata.continue-on-error"}
-        
-        request_data = {"requests": []}
+        requests_data = []
 
         for record in records:
-            rec_headers = record["request_params"].get("headers", {})
             data = {
                 "method": record["request_params"]["method"],
                 "url": record["request_params"]["url"],
                 "headers": {
-                    "Content-Type": "application/json",
-                    "If-Match": "*",
-                    **rec_headers
+                    **record["request_params"].get("headers", {})
                 },
                 "body": record["payload"]
             }
-            request_data["requests"].append(data)
+            requests_data.append(data)
 
-        response = self.dynamics_client._make_request("$batch", "POST", data=request_data, headers=headers)
-        return response.json()
+        responses = self.dynamics_client.make_batch_request(requests_data)
+        return responses
 
-    def handle_batch_response(self, response) -> dict:
+    def handle_batch_response(self, responses) -> dict:
         """
         This method should return a dict.
         It's recommended that you return a key named "state_updates".
@@ -46,20 +41,19 @@ class DynamicsBaseBatchSink(HotglueBatchSink):
         """
         state_updates = []
 
-        if responses := response.get("responses"):
-            for response in responses:
-                state = {}
-                if response["status"] in [200, 201]:
-                    state["success"] = True
-                    state["id"] = response.get("body", {}).get("id")
+        for response in responses:
+            state = {}
+            if response["status"] in [200, 201]:
+                state["success"] = True
+                state["id"] = response.get("body", {}).get("id")
 
-                
-                if response["status"] == 200:
-                    state["is_updated"] = True
+            
+            if response["status"] == 200:
+                state["is_updated"] = True
 
-                if response["status"] >= 400:
-                    state["success"] = False
-                    state["error"] = response.get("body", {}).get("error")
-                state_updates.append(state)
+            if response["status"] >= 400:
+                state["success"] = False
+                state["error"] = response.get("body", {}).get("error")
+            state_updates.append(state)
 
         return {"state_updates": state_updates}
