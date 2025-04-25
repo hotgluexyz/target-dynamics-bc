@@ -20,16 +20,14 @@ class CustomerSchemaMapper(BaseMapper):
         }
 
         payload = {
+            **self._map_payment_method(),
+            **self._map_phone_number(),
             "blocked": " ",
             "type": "Person" if self.record.get("isPerson") else "Company",
-            **self._map_payment_method(),
         }
 
-        # map phoneNumbers
-        # map addresses
-        # map currency
-
-        # parentId / parentName (dimensions)
+        # TODO:
+        # map parentId / parentName (dimensions)
         # map categoryId / categoryName (dimensions)
 
         self._map_fields(payload)

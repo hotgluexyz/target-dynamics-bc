@@ -49,6 +49,24 @@ class BaseMapper:
 
         return found_record
 
+    def _map_phone_number(self):
+        """Extracts phone numbers in Dynamics format."""
+        phone = {}
+
+        if phone_numbers := self.record.get("phoneNumbers", []):
+            found_record = next(
+                (phone_number for phone_number in phone_numbers
+                if phone_number["type"] == "unknown"),
+                None
+            )
+
+            if not found_record:
+                found_record = phone_numbers[0]
+            
+            phone = {"phoneNumber": found_record["phoneNumber"]}
+
+        return phone
+
     def _map_company(self):
         company = None
 
