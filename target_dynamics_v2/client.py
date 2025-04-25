@@ -17,7 +17,8 @@ class DynamicsClient:
     ref_request_endpoints = {
         "companies": "companies",
         "currencies": "companies({companyId})/currencies",
-        "paymentMethods": "companies({companyId})/paymentMethods"
+        "paymentMethods": "companies({companyId})/paymentMethods",
+        "customers": "companies({companyId})/customers"
     }
 
     def __init__(self, config) -> None:

@@ -9,16 +9,6 @@ class CustomerSchemaMapper(BaseMapper):
     }
 
     def to_dynamics(self) -> dict:
-        
-        # TODO: move this to the sink
-        request_params = {
-            "url": "customers",
-            "method": "POST",
-            "headers": {
-                "Company": self.company["name"],
-            }
-        }
-
         payload = {
             **self._map_internal_id(),
             **self._map_payment_method(),
@@ -34,6 +24,19 @@ class CustomerSchemaMapper(BaseMapper):
         # map categoryId / categoryName (dimensions)
 
         self._map_fields(payload)
+
+        # TODO: move this to the sink
+        request_params = {
+            "url": f"companies({self.company['id']})/customers",
+            "method": "POST"
+        }
+
+        if self.existing_record:
+            request_params = {
+                "url": f"companies({self.company['id']})/customers({payload['id']})",
+                "method": "PATCH"
+            }
+
         return {"payload": payload, "request_params": request_params }
     
     def _map_payment_method(self):

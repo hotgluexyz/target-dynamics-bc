@@ -12,7 +12,7 @@ class BaseMapper:
         self.record = record
         self.sink_name = sink_name
         self.reference_data: ReferenceData = reference_data
-        self.existing_record = self._find_existing_record(self.reference_data[sink_name])
+        self.existing_record = self._find_existing_record(self.reference_data.get(sink_name, []))
         self._map_company()
 
     def _find_existing_record(self, reference_list):
