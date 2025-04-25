@@ -28,7 +28,7 @@ class CustomerSink(DynamicsBaseBatchSink):
 
         self.reference_data = {**self._target.reference_data, "Customers": existing_customers}
 
-    def process_batch_record(self, record: dict, index: int) -> dict:
+    def process_batch_record(self, record: dict) -> dict:
         # perform the mapping
         mapped_record = CustomerSchemaMapper(record, self.name, self.reference_data)
         payload = mapped_record.to_dynamics()
