@@ -92,15 +92,29 @@ class DynamicsClient:
         responses = response.json().get("responses", [])
         return responses
 
+    def get_reference_data(self, record_type: str, url_params: Optional[dict] = {}, ids: Optional[list] = []):
         endpoint = self.ref_request_endpoints[record_type].format(**url_params)
-        response = self._make_request(endpoint, "GET")
+        filters = []
 
-        success, error_message = self._validate_response(response)
+        if ids:
+            filters += [f"id eq {id}" for id in ids]
+
+        if filters:
+            endpoint += f"?$filter={' or '.join(filters)}"
+
+        requests_data = [{
+            "url": endpoint,
+            "method": "GET",
+        }]
+
+        responses = self.make_batch_request(requests_data)
+        response = responses[0]
+
+        success, error_message = self._validate_batch_response(response)
         if not success:
             return success, error_message, []
         
-        resp_json = response.json()
-        return True, None, resp_json.get("value", [])
+        return True, None, response.get("body", {}).get("value", [])
 
     def get_companies(self):
         _, _, companies = self.get_reference_data("companies")
