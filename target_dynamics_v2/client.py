@@ -54,12 +54,44 @@ class DynamicsClient:
     
     def _validate_response(self, response: requests.Response) -> tuple[bool, str | None]:
         if response.status_code >= 400:
-            msg = self._response_error_message(response)
+            msg = response.get("error")
+            return False, msg
+        else:
+            return True, None
+        
+    def _validate_batch_response(self, response: dict) -> tuple[bool, str | None]:
+        if response["status"] >= 400:
+            msg = response.get("body", {}).get("error")
             return False, msg
         else:
             return True, None
 
-    def get_reference_data(self, record_type: str, url_params: Optional[dict] = {}):
+    def make_batch_request(self, requests_data: List[dict]):
+        """
+        Performs a batch request against the API, any API endpoint can be used in batch requests.
+        requests_data: list of requests, each containing a dict of url, method, headers and body
+        """
+        headers = {"Prefer": "odata.continue-on-error"}
+        request_data = {"requests": []}
+
+        for request in requests_data:
+            req_headers = request.get("headers", {})
+            data = {
+                "method": request["method"],
+                "url": request["url"],
+                "headers": {
+                    "Content-Type": "application/json",
+                    "If-Match": "*",
+                    **req_headers
+                },
+                "body": request.get("body", {})
+            }
+            request_data["requests"].append(data)
+
+        response = self._make_request("$batch", "POST", data=request_data, headers=headers)
+        responses = response.json().get("responses", [])
+        return responses
+
         endpoint = self.ref_request_endpoints[record_type].format(**url_params)
         response = self._make_request(endpoint, "GET")
 
