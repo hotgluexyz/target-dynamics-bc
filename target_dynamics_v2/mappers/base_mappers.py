@@ -49,6 +49,11 @@ class BaseMapper:
 
         return found_record
 
+    def _map_internal_id(self):
+        if self.existing_record:
+            return { "id": self.existing_record["id"]}
+        return {}
+
     def _map_phone_number(self):
         """Extracts phone numbers in Dynamics format."""
         phone = {}

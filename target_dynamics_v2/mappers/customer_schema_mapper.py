@@ -20,6 +20,7 @@ class CustomerSchemaMapper(BaseMapper):
         }
 
         payload = {
+            **self._map_internal_id(),
             **self._map_payment_method(),
             **self._map_phone_number(),
             **self._map_address(),
