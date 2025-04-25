@@ -30,4 +30,23 @@ class CustomerSink(DynamicsBaseBatchSink):
 
     def process_batch_record(self, record: dict, index: int) -> dict:
         # perform the mapping
-        return CustomerSchemaMapper(record, self.name, self.reference_data).to_dynamics()
+        mapped_record = CustomerSchemaMapper(record, self.name, self.reference_data)
+        payload = mapped_record.to_dynamics()
+
+        request_params = self.get_request_params(mapped_record)
+
+        return {"payload": payload, "request_params": request_params }
+    
+    def get_request_params(self, mapped_record):
+        request_params = {
+            "url": f"companies({mapped_record.company['id']})/customers",
+            "method": "POST"
+        }
+
+        if mapped_record.existing_record:
+            request_params = {
+                "url": f"companies({mapped_record.company['id']})/customers({mapped_record.existing_record['id']})",
+                "method": "PATCH"
+            }
+        
+        return request_params

@@ -94,6 +94,7 @@ class DynamicsClient:
         return responses
 
     def get_reference_data(self, record_type: str, url_params: Optional[dict] = {}, ids: Optional[list] = []):
+        """"Uses batch request to get data because the url can be of any lenght, allowing for long filters"""
         endpoint = self.ref_request_endpoints[record_type].format(**url_params)
         filters = []
 

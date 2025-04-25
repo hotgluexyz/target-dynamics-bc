@@ -25,19 +25,7 @@ class CustomerSchemaMapper(BaseMapper):
 
         self._map_fields(payload)
 
-        # TODO: move this to the sink
-        request_params = {
-            "url": f"companies({self.company['id']})/customers",
-            "method": "POST"
-        }
-
-        if self.existing_record:
-            request_params = {
-                "url": f"companies({self.company['id']})/customers({payload['id']})",
-                "method": "PATCH"
-            }
-
-        return {"payload": payload, "request_params": request_params }
+        return payload
     
     def _map_payment_method(self):
         if self.company is None:
