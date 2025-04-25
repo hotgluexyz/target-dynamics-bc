@@ -22,6 +22,7 @@ class CustomerSchemaMapper(BaseMapper):
         payload = {
             **self._map_payment_method(),
             **self._map_phone_number(),
+            **self._map_address(),
             "blocked": " ",
             "type": "Person" if self.record.get("isPerson") else "Company",
         }

@@ -67,6 +67,23 @@ class BaseMapper:
 
         return phone
 
+    def _map_address(self):
+        """Extracts addresses to Dynamics format."""
+        address_info = {}
+
+        if addresses := self.record.get("addresses", []):
+            address = addresses[0]
+            address_info = {
+                "addressLine1": address.get("line1"),
+                "addressLine2": address.get("line2"),
+                "city": address.get("city"),
+                "state": address.get("state"),
+                "country": address.get("country"),
+                "postalCode": address.get("postalCode"),
+            }
+
+        return address_info
+
     def _map_company(self):
         company = None
 
