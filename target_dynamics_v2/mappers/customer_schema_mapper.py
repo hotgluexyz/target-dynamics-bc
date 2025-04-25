@@ -23,6 +23,7 @@ class CustomerSchemaMapper(BaseMapper):
             **self._map_payment_method(),
             **self._map_phone_number(),
             **self._map_address(),
+            **self._map_currency(),
             "blocked": " ",
             "type": "Person" if self.record.get("isPerson") else "Company",
         }

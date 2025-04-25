@@ -84,13 +84,51 @@ class BaseMapper:
 
         return address_info
 
+    def _map_currency(self):
+        """Extracts currency to Dynamics format."""
+        currency_info = {}
+
+        found_currency = None
+
+        if currency_id := self.record.get("currencyId"):
+            found_currency = next(
+                (currency for currency in self.company["currencies"]
+                if currency["id"] == currency_id),
+                None
+            )
+
+        if (currency_code := self.record.get("currency")) and not found_currency:
+            found_currency = next(
+                (currency for currency in self.company["currencies"]
+                if currency["code"] == currency_code),
+                None
+            )
+
+        if (currency_name := self.record.get("currencyName")) and not found_currency:
+            found_currency = next(
+                (currency for currency in self.company["currencies"]
+                if currency["displayName"] == currency_name),
+                None
+            )
+
+        if found_currency:
+            currency_info = {
+                "currencyId": found_currency["id"],
+                "currencyCode": found_currency["code"]
+            }
+        elif currency_code:
+            currency_info = { "currencyCode": currency_code }
+            
+
+        return currency_info
+
     def _map_company(self):
         company = None
 
         if subsidiary_id := self.record.get("subsidiaryId"):
             company = self._find_company_by_id(subsidiary_id)
 
-        if subsidiary_name := self.record.get("subsidiaryName") and company is None:
+        if (subsidiary_name := self.record.get("subsidiaryName")) and company is None:
             company = self._find_company_by_name(subsidiary_name)
 
         if company:
