@@ -1,4 +1,6 @@
 from typing import List
+
+from target_dynamics_v2.client import DynamicsClient
 from target_dynamics_v2.mappers.customer_schema_mapper import CustomerSchemaMapper
 from target_dynamics_v2.sinks.base_sinks import DynamicsBaseBatchSink
 
@@ -24,7 +26,7 @@ class CustomerSink(DynamicsBaseBatchSink):
         # make requests to get existing Customers for each company from Dynamics
         for company_id in company_customers_mapping:
             url_params = { "companyId": company_id }
-            _, _, customers = self.dynamics_client.get_reference_data("customers", url_params=url_params, ids=company_customers_mapping[company_id])
+            _, _, customers = self.dynamics_client.get_reference_data(self.name, url_params=url_params, ids=company_customers_mapping[company_id], expand="defaultDimensions")
             existing_customers += customers
 
         self.reference_data = {**self._target.reference_data, "Customers": existing_customers}
@@ -36,17 +38,27 @@ class CustomerSink(DynamicsBaseBatchSink):
 
         request_params = self.get_request_params(mapped_record)
 
-        return {"payload": payload, "request_params": request_params }
-    
+        default_dimensions_requests = []
+        if mapped_record.existing_record and payload.get("defaultDimensions"):
+            default_dimensions = payload.pop("defaultDimensions")
+            default_dimensions_requests = mapped_record._create_default_dimensions_requests(default_dimensions)
+
+        records = [{"payload": payload, "request_params": request_params }]
+        records += default_dimensions_requests
+
+        return {"records": records}
+
     def get_request_params(self, mapped_record):
+        endpoint = DynamicsClient.ref_request_endpoints[self.name]
+        endpoint = endpoint.format(companyId=mapped_record.company['id'])
         request_params = {
-            "url": f"companies({mapped_record.company['id']})/customers",
+            "url": endpoint,
             "method": "POST"
         }
 
         if mapped_record.existing_record:
             request_params = {
-                "url": f"companies({mapped_record.company['id']})/customers({mapped_record.existing_record['id']})",
+                "url": f"{endpoint}({mapped_record.existing_record['id']})",
                 "method": "PATCH"
             }
         

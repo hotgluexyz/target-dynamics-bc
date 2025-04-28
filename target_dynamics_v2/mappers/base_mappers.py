@@ -1,3 +1,6 @@
+from typing import List
+
+from target_dynamics_v2.client import DynamicsClient
 from target_dynamics_v2.utils import ReferenceData
 
 class BaseMapper:
@@ -140,6 +143,69 @@ class BaseMapper:
         if company:
             self.company = company
 
+    def _get_dimension(self, dimension_code: str):
+        return next(
+            (dimension for dimension in self.company["dimensions"] if dimension["code"] == dimension_code),
+            None)
+
+    def _get_dimension_value(self, dimension: dict, value_id: str, value_code: str, value_display_name: str):
+        """Find dimension value by looking for dimension id, code or displayName"""
+        if found_dimension_value := next(
+            (dimension_value for dimension_value in dimension.get("dimensionValues", []) if dimension_value["id"] == value_id),
+            None
+        ):
+            return found_dimension_value
+        
+        if found_dimension_value := next(
+            (dimension_value for dimension_value in dimension.get("dimensionValues", []) if dimension_value["code"] == value_code),
+            None
+        ):
+            return found_dimension_value
+        
+        if found_dimension_value := next(
+            (dimension_value for dimension_value in dimension.get("dimensionValues", []) if dimension_value["displayName"] == value_display_name),
+            None
+        ):
+            return found_dimension_value
+
+        return None
+
+    def _get_existing_default_dimension(self, dimension_id: str):
+        if not self.existing_record:
+            return None
+        
+        existing_dimensions = self.existing_record.get("defaultDimensions", [])
+        return next(
+            (existing_dimension for existing_dimension in existing_dimensions if existing_dimension["dimensionId"] == dimension_id),
+            None
+        )
+
+    def _map_default_dimensions_dimensions(self):
+        default_dimensions = []
+        dimension_mapping = self.sink._target.dimensions_mapping.get(self.sink.name, {})
+        for field_name, dimension_code in dimension_mapping.items():
+            dimension = self._get_dimension(dimension_code)
+            field_id = self.record.get(f"{field_name}Id", None)
+            field_external_id = self.record.get(f"{field_name}ExternalId", None)
+            field_name = self.record.get(f"{field_name}Name", None)
+
+            if not field_id and not field_external_id and not field_name:
+                continue
+
+            if dimension_value := self._get_dimension_value(dimension, field_id, field_external_id, field_name):
+                default_dimension = {
+                    "dimensionId": dimension_value["dimensionId"],
+                    "dimensionValueId": dimension_value["id"]
+                }
+                if existing_default_dimension := self._get_existing_default_dimension(dimension["id"]):
+                    default_dimension["id"] = existing_default_dimension["id"]
+                default_dimensions.append(default_dimension)  
+            else:
+                raise Exception(f"Dimension could not find a Dimension Value for dimension {dimension['code']} when looking up dimension id={field_id} / code={field_external_id} / displayName={field_name}")
+
+        return {"defaultDimensions": default_dimensions} if default_dimensions else {}
+
+
     def _map_fields(self, payload):
         for record_key, payload_key in self.field_mappings.items():
             if record_key in self.record and self.record.get(record_key) != None:
@@ -148,3 +214,27 @@ class BaseMapper:
                         payload[key] = self.record.get(record_key)
                 else:
                     payload[payload_key] = self.record.get(record_key)
+
+    def _create_default_dimensions_requests(self, default_dimensions: List[dict]):
+        """
+        If the Entity already exists we cannot create/update defaultDimensions for it.
+        We need to send a separate request for it
+        """
+        requests = []
+
+        for default_dimension in default_dimensions:
+            endpoint = DynamicsClient.ref_request_endpoints[self.sink.name] + "({entityId})/defaultDimensions"
+            endpoint = endpoint.format(companyId=self.company['id'], entityId=self.existing_record["id"])
+            request_params = {
+                "url": endpoint,
+                "method": "POST"
+            }
+
+            if default_dimension_id := default_dimension.pop("id", None):
+                request_params = {
+                    "url": f"{endpoint}({default_dimension_id})",
+                    "method": "PATCH"
+                }
+            requests.append({"payload": default_dimension, "request_params": request_params})
+
+        return requests

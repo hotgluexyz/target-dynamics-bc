@@ -15,13 +15,10 @@ class CustomerSchemaMapper(BaseMapper):
             **self._map_phone_number(),
             **self._map_address(),
             **self._map_currency(),
+            **self._map_default_dimensions_dimensions(),
             "blocked": " ",
             "type": "Person" if self.record.get("isPerson") else "Company",
         }
-
-        # TODO:
-        # map parentId / parentName (dimensions)
-        # map categoryId / categoryName (dimensions)
 
         self._map_fields(payload)
 
