@@ -9,6 +9,7 @@ from target_hotglue.common import HGJSONEncoder
 from target_dynamics_v2.client import DynamicsClient
 
 class DynamicsBaseBatchSink(HotglueBatchSink):
+    allowed_fields_override = []
     max_size = 100
 
     def __init__(

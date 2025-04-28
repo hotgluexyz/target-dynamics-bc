@@ -1,4 +1,6 @@
 """DynamicsV2 target class."""
+import json
+import os
 
 from singer_sdk.target_base import Target
 from singer_sdk import typing as th
@@ -29,6 +31,7 @@ class TargetDynamicsV2(TargetHotglue):
         )
         self.dynamics_client = DynamicsClient(self.config)
         self.reference_data: ReferenceData = self.get_reference_data()
+        self.load_fields_and_dimensions_mapping_config()
 
     def get_reference_data(self) -> ReferenceData:
         self.logger.info(f"Getting reference data...")
@@ -39,6 +42,55 @@ class TargetDynamicsV2(TargetHotglue):
 
         self.logger.info(f"Done getting reference data...")
         return reference_data
+
+    def parse_field_mapping(self, type: str, field_mappings: dict):
+        filtered_mapping = {}
+
+        for sink, sink_field_map in field_mappings.items():
+            sink_mapping = {field_name: field_config for field_name, field_config in sink_field_map.items() if field_config.get("type") == type}
+            if sink_mapping:
+                filtered_mapping[sink] = sink_mapping
+        
+        return filtered_mapping
+
+    def validate_dimensions_mapping(self, dimensions_mapping: dict):
+        # make a set of unique field name to dimension name
+        dimensions_from_to = set()
+        for dimension_map in dimensions_mapping.values():
+            for dimension_from in dimension_map:
+                dimensions_from_to.add(dimension_map[dimension_from]["name"])
+
+        # for every company check if the dimension exists
+        for company in self.reference_data["companies"]:
+            self.logger.info(f"Validating field -> dimension mapping for companyId={company['id']}")
+            for dimension_name in dimensions_from_to:
+                found_dimension = next((dimension for dimension in company["dimensions"] if dimension["code"] == dimension_name), None)
+
+                if not found_dimension:
+                    raise Exception(f"Could not find dimension={dimension_name} for companyId={company['id']}")    
+
+    def validate_fields_mapping(self, fields_mapping: dict):
+        for sink in self.SINK_TYPES:
+            override_fields_name = {field_name for field_name in fields_mapping.get(sink.name, {})}
+            not_overridable_fields = override_fields_name - set(sink.allowed_fields_override)
+            if not_overridable_fields:
+                raise Exception(f"Not overridable fields in config for sink={sink.name}, fields={not_overridable_fields}")
+    
+    def load_fields_and_dimensions_mapping_config(self):
+        config_path = f"../vinni-tenant-config.json"
+
+        config= {}
+        # Verifies if `tenant-config.json` exists
+        if os.path.exists(config_path):
+            with open(config_path) as f:
+                config = json.load(f)
+
+        if mappings := config.get("field_mappings"):
+            dimensions_mapping = self.parse_field_mapping("dimension", mappings)
+            fields_mapping = self.parse_field_mapping("field", mappings)
+
+            self.validate_dimensions_mapping(dimensions_mapping)
+            self.validate_fields_mapping(fields_mapping)
 
     config_jsonschema = th.PropertiesList(
         th.Property(

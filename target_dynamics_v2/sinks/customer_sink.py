@@ -4,6 +4,7 @@ from target_dynamics_v2.sinks.base_sinks import DynamicsBaseBatchSink
 
 class CustomerSink(DynamicsBaseBatchSink):
     name = "Customers"
+    allowed_fields_override = ["parentId"]
 
     def preprocess_batch(self, records: List[dict]):
         # we need to map the company to query the existing customers
