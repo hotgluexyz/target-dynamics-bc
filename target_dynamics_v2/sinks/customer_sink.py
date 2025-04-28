@@ -6,9 +6,12 @@ from target_dynamics_v2.sinks.base_sinks import DynamicsBaseBatchSink
 
 class CustomerSink(DynamicsBaseBatchSink):
     name = "Customers"
+    # fields in the tenant-config of type=field that are allowed to be overwritten
     allowed_fields_override = ["parentId"]
 
     def preprocess_batch(self, records: List[dict]):
+        # fetch reference data related to existing customers
+
         # we need to map the company to query the existing customers
         mapped_records = [CustomerSchemaMapper(record, self, self._target.reference_data) for record in records if record.get("id")]
         company_customers_mapping = {}
@@ -29,7 +32,7 @@ class CustomerSink(DynamicsBaseBatchSink):
             _, _, customers = self.dynamics_client.get_entities(self.name, url_params=url_params, ids=company_customers_mapping[company_id], expand="defaultDimensions")
             existing_customers += customers
 
-        self.reference_data = {**self._target.reference_data, "Customers": existing_customers}
+        self.reference_data = {**self._target.reference_data, self.name: existing_customers}
 
     def process_batch_record(self, record: dict) -> dict:
         # perform the mapping
