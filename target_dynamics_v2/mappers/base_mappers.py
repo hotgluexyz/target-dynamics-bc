@@ -6,13 +6,14 @@ class BaseMapper:
     def __init__(
             self,
             record,
-            sink_name,
+            sink,
             reference_data
     ) -> None:
         self.record = record
-        self.sink_name = sink_name
+        self.sink = sink
+        self.field_mappings = {**self.field_mappings, **self.sink._target.fields_mapping.get(self.sink.name, {})}
         self.reference_data: ReferenceData = reference_data
-        self.existing_record = self._find_existing_record(self.reference_data.get(sink_name, []))
+        self.existing_record = self._find_existing_record(self.reference_data.get(self.sink.name, []))
         self._map_company()
 
     def _find_existing_record(self, reference_list):

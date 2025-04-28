@@ -8,7 +8,7 @@ class CustomerSink(DynamicsBaseBatchSink):
 
     def preprocess_batch(self, records: List[dict]):
         # we need to map the company to query the existing customers
-        mapped_records = [CustomerSchemaMapper(record, self.name, self._target.reference_data) for record in records if record.get("id")]
+        mapped_records = [CustomerSchemaMapper(record, self, self._target.reference_data) for record in records if record.get("id")]
         company_customers_mapping = {}
 
         for mapped_record in mapped_records:
@@ -31,7 +31,7 @@ class CustomerSink(DynamicsBaseBatchSink):
 
     def process_batch_record(self, record: dict) -> dict:
         # perform the mapping
-        mapped_record = CustomerSchemaMapper(record, self.name, self.reference_data)
+        mapped_record = CustomerSchemaMapper(record, self, self.reference_data)
         payload = mapped_record.to_dynamics()
 
         request_params = self.get_request_params(mapped_record)
