@@ -15,11 +15,11 @@ LOGGER = singer.get_logger()
 
 class DynamicsClient:
     ref_request_endpoints = {
-        "companies": "companies",
-        "currencies": "companies({companyId})/currencies",
-        "paymentMethods": "companies({companyId})/paymentMethods",
-        "customers": "companies({companyId})/customers",
-        "dimensions": "companies({companyId})/dimensions"
+        "Companies": "companies",
+        "Currencies": "companies({companyId})/currencies",
+        "PaymentMethods": "companies({companyId})/paymentMethods",
+        "Customers": "companies({companyId})/customers",
+        "Dimensions": "companies({companyId})/dimensions"
     }
 
     def __init__(self, config) -> None:
@@ -68,12 +68,24 @@ class DynamicsClient:
         else:
             return True, None
 
-    def make_batch_request(self, requests_data: List[dict]):
+    def make_batch_request(self, requests_data: List[dict], transaction_type: str = "non_atomic"):
         """
         Performs a batch request against the API, any API endpoint can be used in batch requests.
         requests_data: list of requests, each containing a dict of url, method, headers and body
+        transaction_type:
+            'non_atomic' = the batch requests will continue to be processed even if one of them fail
+            'atomic' = if one of the requests fails all the other requests will be rolled back. It's good
+                        to be used when multiple requests are needed for one entity, for example updating
+                        Customer and it's default dimensions
         """
-        headers = {"Prefer": "odata.continue-on-error"}
+        headers = {"Prefer": "odata.continue-on-error=true"}
+
+        if transaction_type == "atomic":
+            # Prefer: odata.continue-on-error=false makes the batch request stop processing requests if one of them fail
+            # Isolation: snapshot makes the batch request atomic, if one of the requests fail the operation will be rolled back
+            # it's good to be used when multiple requests are needed for one entity, for example updating Customer and it's default dimensions
+            headers = {"Isolation": "snapshot", "Prefer": "odata.continue-on-error=false"}
+
         request_data = {"requests": []}
 
         for request in requests_data:
@@ -127,18 +139,18 @@ class DynamicsClient:
         return True, None, response.get("body", {}).get("value", [])
 
     def get_companies(self):
-        _, _, companies = self.get_reference_data("companies")
+        _, _, companies = self.get_reference_data("Companies")
 
         for company in companies:
             url_params = {"companyId": company["id"]}
 
-            _, _, currencies = self.get_reference_data("currencies", url_params)
+            _, _, currencies = self.get_reference_data("Currencies", url_params)
             company["currencies"] = currencies
             
-            _, _, payment_methods = self.get_reference_data("paymentMethods", url_params)
+            _, _, payment_methods = self.get_reference_data("PaymentMethods", url_params)
             company["paymentMethods"] = payment_methods
 
-            _, _, dimensions = self.get_reference_data("dimensions", url_params, expand="dimensionValues")
+            _, _, dimensions = self.get_reference_data("Dimensions", url_params, expand="dimensionValues")
             company["dimensions"] = dimensions
 
         return True, None, companies
