@@ -39,12 +39,12 @@ class DynamicsBaseBatchSink(HotglueBatchSink):
 
         # filter out duplicated records from previous batches
         for record in records:
-            hash = self.build_record_hash(record)
+            hash = record["hash"]
             existing_state = self.get_existing_state(hash)
 
             if existing_state:
                 continue
-            filtered_records.append({"hash": hash, **record})
+            filtered_records.append(record)
 
         # filter out duplicated records within the same batch
         seen_hashes = set()
@@ -118,6 +118,10 @@ class DynamicsBaseBatchSink(HotglueBatchSink):
         """
         pass
 
+    def hash_records(self, records: List[dict]):
+        for record in records:
+            record["hash"] = self.build_record_hash(record)
+
     def process_batch(self, context: dict) -> None:
         if not self.latest_state:
             self.init_state()
@@ -129,6 +133,7 @@ class DynamicsBaseBatchSink(HotglueBatchSink):
         records = []
         for raw_record in raw_records:
             try:
+                # performs record mapping from unified to Dynamics
                 record = self.process_batch_record(raw_record)
                 records.append(record)
             except Exception as e:
@@ -137,6 +142,7 @@ class DynamicsBaseBatchSink(HotglueBatchSink):
                     state["id"] = id
                 self.update_state(state)
 
+        self.hash_records(records)
         records = self.check_for_duplicated_records(records)
         responses = self.make_batch_request(records)
         result = self.handle_batch_response(responses, records)
