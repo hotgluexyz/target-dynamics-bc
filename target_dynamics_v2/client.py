@@ -106,7 +106,7 @@ class DynamicsClient:
         responses = response.json().get("responses", [])
         return responses
 
-    def get_reference_data(self, record_type: str, url_params: Optional[dict] = {}, ids: Optional[list] = [], expand: str = None):
+    def get_entities(self, record_type: str, url_params: Optional[dict] = {}, ids: Optional[list] = [], expand: str = None):
         """"Uses batch request to get data because the url can be of any lenght, allowing for long filters"""
         endpoint = self.ref_request_endpoints[record_type].format(**url_params)
         filters = []
@@ -139,18 +139,18 @@ class DynamicsClient:
         return True, None, response.get("body", {}).get("value", [])
 
     def get_companies(self):
-        _, _, companies = self.get_reference_data("Companies")
+        _, _, companies = self.get_entities("Companies")
 
         for company in companies:
             url_params = {"companyId": company["id"]}
 
-            _, _, currencies = self.get_reference_data("Currencies", url_params)
+            _, _, currencies = self.get_entities("Currencies", url_params)
             company["currencies"] = currencies
             
-            _, _, payment_methods = self.get_reference_data("PaymentMethods", url_params)
+            _, _, payment_methods = self.get_entities("PaymentMethods", url_params)
             company["paymentMethods"] = payment_methods
 
-            _, _, dimensions = self.get_reference_data("Dimensions", url_params, expand="dimensionValues")
+            _, _, dimensions = self.get_entities("Dimensions", url_params, expand="dimensionValues")
             company["dimensions"] = dimensions
 
         return True, None, companies

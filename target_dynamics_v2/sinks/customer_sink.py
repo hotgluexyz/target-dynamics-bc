@@ -26,7 +26,7 @@ class CustomerSink(DynamicsBaseBatchSink):
         # make requests to get existing Customers for each company from Dynamics
         for company_id in company_customers_mapping:
             url_params = { "companyId": company_id }
-            _, _, customers = self.dynamics_client.get_reference_data(self.name, url_params=url_params, ids=company_customers_mapping[company_id], expand="defaultDimensions")
+            _, _, customers = self.dynamics_client.get_entities(self.name, url_params=url_params, ids=company_customers_mapping[company_id], expand="defaultDimensions")
             existing_customers += customers
 
         self.reference_data = {**self._target.reference_data, "Customers": existing_customers}
