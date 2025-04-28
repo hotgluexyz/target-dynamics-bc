@@ -3,14 +3,15 @@ import json
 from typing import Dict, List, Optional
 
 from singer_sdk.plugin_base import PluginBase
-from target_hotglue.client import HotglueBatchSink
+from singer_sdk.sinks import BatchSink
+from target_hotglue.client import HotglueBaseSink
 from target_hotglue.common import HGJSONEncoder
 
 from target_dynamics_v2.client import DynamicsClient
 
-class DynamicsBaseBatchSink(HotglueBatchSink):
+class DynamicsBaseBatchSink(HotglueBaseSink, BatchSink):
     allowed_fields_override = []
-    max_size = 100
+    max_size = 1000 # max allowed by dynamics is 1000
 
     def __init__(
         self,
@@ -21,6 +22,9 @@ class DynamicsBaseBatchSink(HotglueBatchSink):
     ) -> None:
         super().__init__(target, stream_name, schema, key_properties)
         self.dynamics_client: DynamicsClient = self._target.dynamics_client
+
+    def process_batch_record(self, record: dict, index: int) -> dict:
+        return record
 
     def build_record_hash(self, record: dict):
         return hashlib.sha256(json.dumps(record, cls=HGJSONEncoder).encode()).hexdigest()
@@ -59,23 +63,27 @@ class DynamicsBaseBatchSink(HotglueBatchSink):
 
         return unique_records
 
-    def make_batch_request(self, records: List[dict]):
-        requests_data = []
-
+    def make_batch_request(self, records: List[dict], transaction_type: str = "non_atomic"):
+        responses = []
         for record in records:
-            data = {
-                "method": record["request_params"]["method"],
-                "url": record["request_params"]["url"],
-                "headers": {
-                    **record["request_params"].get("headers", {})
-                },
-                "body": record["payload"]
-            }
-            requests_data.append(data)
+            requests_data = []
+            for request in record["records"]:
+                data = {
+                    "method": request["request_params"]["method"],
+                    "url": request["request_params"]["url"],
+                    "headers": {
+                        **request["request_params"].get("headers", {})
+                    },
+                    "body": request["payload"]
+                }
+                requests_data.append(data)
 
-        return self.dynamics_client.make_batch_request(requests_data)
+            if requests_data:
+                responses += self.dynamics_client.make_batch_request(requests_data, transaction_type=transaction_type)
 
-    def handle_batch_response(self, responses: List[dict], records: List[dict]) -> dict:
+        return responses
+
+    def handle_non_atomic_batch_response(self, responses: List[dict], records: List[dict]) -> dict:
         """
         This method should return a dict.
         It's recommended that you return a key named "state_updates".
@@ -99,17 +107,51 @@ class DynamicsBaseBatchSink(HotglueBatchSink):
                 state["success"] = True
                 state["id"] = response.get("body", {}).get("id")
 
-            
             if response["status"] == 200:
                 state["is_updated"] = True
 
             if response["status"] >= 400:
                 state["success"] = False
-                state["record"] = record
+                state["record"] = record["records"]
                 state["error"] = response.get("body", {}).get("error")
             state_updates.append(state)
 
         return {"state_updates": state_updates}
+    
+    def handle_atomic_batch_response(self, responses: List[dict], record: dict) -> dict:
+        """
+        This method should return a dict with the state update
+        
+        for the atomic batch request all the requests are related to one entity
+        if one fails it will stop executing, so we check the last response code
+        if it's an error we return an error state.
+        if it's success we look for the code in the first response (which is the
+        response for the main entity)
+
+        responses: a list of responses from the API
+        record: used to make the requests to the API
+        """
+        state = {}
+
+        first_response = responses[0]
+        last_response = responses[-1]
+
+        if hash := record.pop("hash", None):
+            state["hash"] = hash
+
+        if last_response["status"] >= 400:
+            state["success"] = False
+            state["record"] = record["records"]
+            state["error"] = last_response.get("body", {}).get("error")
+            return state
+
+        state["success"] = True
+        state["id"] = first_response.get("body", {}).get("id")
+
+        if first_response["status"] == 200:
+            state["is_updated"] = True
+
+        return state
     
     def preprocess_batch(self, records: List[dict]):
         """
@@ -145,8 +187,26 @@ class DynamicsBaseBatchSink(HotglueBatchSink):
 
         self.hash_records(records)
         records = self.check_for_duplicated_records(records)
-        responses = self.make_batch_request(records)
-        result = self.handle_batch_response(responses, records)
 
+        # separate atomic and non atomic records
+        # 
+        # non atomic records are records that just need one API operation, we bulk
+        # all of them in one single batch operation
+        # 
+        # atomic records are records that need to perform more than one API operation,
+        # for example updating a customer which also update it's default dimensions,
+        # then all the requests for that given customer is performed in one transactional batch
+        # operation, in case one of the operation fails the others are automatically rolledback
+        # to keep record consistency
+        atomic_records = [record for record in records if len(record["records"])>1]
+        non_atomic_records = [record for record in records if len(record["records"])==1] 
+
+        non_atomic_responses = self.make_batch_request(non_atomic_records)
+        result = self.handle_non_atomic_batch_response(non_atomic_responses, non_atomic_records)
         for state in result.get("state_updates", list()):
+            self.update_state(state)
+
+        for atomic_record in atomic_records:
+            atomic_responses = self.make_batch_request([atomic_record], transaction_type="atomic")
+            state = self.handle_atomic_batch_response(atomic_responses, atomic_record)
             self.update_state(state)
