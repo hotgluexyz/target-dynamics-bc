@@ -31,7 +31,7 @@ class TargetDynamicsV2(TargetHotglue):
         )
         self.dynamics_client = DynamicsClient(self.config)
         self.reference_data: ReferenceData = self.get_reference_data()
-        self.load_fields_and_dimensions_mapping_config()
+        self.dimensions_mapping, self.fields_mapping = self.load_fields_and_dimensions_mapping_config()
 
     def get_reference_data(self) -> ReferenceData:
         self.logger.info(f"Getting reference data...")
@@ -47,23 +47,23 @@ class TargetDynamicsV2(TargetHotglue):
         filtered_mapping = {}
 
         for sink, sink_field_map in field_mappings.items():
-            sink_mapping = {field_name: field_config for field_name, field_config in sink_field_map.items() if field_config.get("type") == type}
+            sink_mapping = {field_name: field_config["name"] for field_name, field_config in sink_field_map.items() if field_config.get("type") == type}
             if sink_mapping:
                 filtered_mapping[sink] = sink_mapping
         
         return filtered_mapping
 
     def validate_dimensions_mapping(self, dimensions_mapping: dict):
-        # make a set of unique field name to dimension name
-        dimensions_from_to = set()
+        # make a set of unique dimension names
+        dimensions_names = set()
         for dimension_map in dimensions_mapping.values():
-            for dimension_from in dimension_map:
-                dimensions_from_to.add(dimension_map[dimension_from]["name"])
+            for dimension_name in dimension_map.values():
+                dimensions_names.add(dimension_name)
 
         # for every company check if the dimension exists
         for company in self.reference_data["companies"]:
             self.logger.info(f"Validating field -> dimension mapping for companyId={company['id']}")
-            for dimension_name in dimensions_from_to:
+            for dimension_name in dimensions_names:
                 found_dimension = next((dimension for dimension in company["dimensions"] if dimension["code"] == dimension_name), None)
 
                 if not found_dimension:
@@ -91,6 +91,8 @@ class TargetDynamicsV2(TargetHotglue):
 
             self.validate_dimensions_mapping(dimensions_mapping)
             self.validate_fields_mapping(fields_mapping)
+        
+        return dimensions_mapping or {}, fields_mapping or {}
 
     config_jsonschema = th.PropertiesList(
         th.Property(
