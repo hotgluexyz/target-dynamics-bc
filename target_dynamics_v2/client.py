@@ -18,7 +18,8 @@ class DynamicsClient:
         "companies": "companies",
         "currencies": "companies({companyId})/currencies",
         "paymentMethods": "companies({companyId})/paymentMethods",
-        "customers": "companies({companyId})/customers"
+        "customers": "companies({companyId})/customers",
+        "dimensions": "companies({companyId})/dimensions"
     }
 
     def __init__(self, config) -> None:
@@ -93,7 +94,7 @@ class DynamicsClient:
         responses = response.json().get("responses", [])
         return responses
 
-    def get_reference_data(self, record_type: str, url_params: Optional[dict] = {}, ids: Optional[list] = []):
+    def get_reference_data(self, record_type: str, url_params: Optional[dict] = {}, ids: Optional[list] = [], expand: str = None):
         """"Uses batch request to get data because the url can be of any lenght, allowing for long filters"""
         endpoint = self.ref_request_endpoints[record_type].format(**url_params)
         filters = []
@@ -102,7 +103,14 @@ class DynamicsClient:
             filters += [f"id eq {id}" for id in ids]
 
         if filters:
-            endpoint += f"?$filter={' or '.join(filters)}"
+            filters = f"$filter={' or '.join(filters)}"
+
+        if expand:
+            expand = f"$expand={expand}"
+
+        query_string = "&".join(filter(None, [expand, filters]))
+        if query_string:
+            endpoint += f"?{query_string}"
 
         requests_data = [{
             "url": endpoint,
@@ -129,5 +137,8 @@ class DynamicsClient:
             
             _, _, payment_methods = self.get_reference_data("paymentMethods", url_params)
             company["paymentMethods"] = payment_methods
+
+            _, _, dimensions = self.get_reference_data("dimensions", url_params, expand="dimensionValues")
+            company["dimensions"] = dimensions
 
         return True, None, companies

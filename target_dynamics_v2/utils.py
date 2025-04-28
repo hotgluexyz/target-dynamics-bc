@@ -15,6 +15,18 @@ class PaymentMethod(TypedDict):
     displayName: str
     lastModifiedDateTime: str
 
+class DimensionValue(TypedDict):
+    id: str
+    code: str
+    dimensionId: str
+    displayName: str
+
+class Dimension(TypedDict):
+    id: str
+    code: str
+    displayName: str
+    dimensionValues: List[DimensionValue]
+
 class Company(TypedDict):
     id: str
     name: str
@@ -22,6 +34,7 @@ class Company(TypedDict):
     businessProfileId: str
     currencies: List[Currency]
     paymentMethods: List[PaymentMethod]
+    dimensions: List[Dimension]
 
 class ReferenceData(TypedDict):
     companies: List[Company]
