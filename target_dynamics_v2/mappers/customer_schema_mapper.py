@@ -2,7 +2,7 @@ from target_dynamics_v2.mappers.base_mappers import BaseMapper
 
 class CustomerSchemaMapper(BaseMapper):
     field_mappings = {
-        "fullName": "displayName",
+        "companyName": "displayName",
         "email": "email",
         "website": "website",
         "taxable": "taxLiable"
