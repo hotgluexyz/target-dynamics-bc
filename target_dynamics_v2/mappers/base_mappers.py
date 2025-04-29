@@ -140,8 +140,13 @@ class BaseMapper:
         if (subsidiary_name := self.record.get("subsidiaryName")) and company is None:
             company = self._find_company_by_name(subsidiary_name)
 
-        if company:
-            self.company = company
+        self.company = company
+
+    def _validate_company(self):
+        if not self.company:
+            subsidiary_id = self.record.get("subsidiaryId")
+            subsidiary_name = self.record.get("subsidiaryName")
+            raise Exception(f"Could not find Company with subsidiaryId={subsidiary_id} / subsidiaryName={subsidiary_name}")
 
     def _get_dimension(self, dimension_code: str):
         return next(

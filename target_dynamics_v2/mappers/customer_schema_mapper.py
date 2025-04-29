@@ -9,6 +9,8 @@ class CustomerSchemaMapper(BaseMapper):
     }
 
     def to_dynamics(self) -> dict:
+        self._validate_company()
+
         payload = {
             **self._map_internal_id(),
             **self._map_payment_method(),
