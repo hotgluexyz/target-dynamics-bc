@@ -85,6 +85,8 @@ class TargetDynamicsV2(TargetHotglue):
             with open(config_path) as f:
                 config = json.load(f)
 
+        dimensions_mapping = {}
+        fields_mapping = {}
         if mappings := config.get("field_mappings"):
             dimensions_mapping = self.parse_field_mapping("dimension", mappings)
             fields_mapping = self.parse_field_mapping("field", mappings)
@@ -92,7 +94,7 @@ class TargetDynamicsV2(TargetHotglue):
             self.validate_dimensions_mapping(dimensions_mapping)
             self.validate_fields_mapping(fields_mapping)
         
-        return dimensions_mapping or {}, fields_mapping or {}
+        return dimensions_mapping, fields_mapping
 
     config_jsonschema = th.PropertiesList(
         th.Property(
