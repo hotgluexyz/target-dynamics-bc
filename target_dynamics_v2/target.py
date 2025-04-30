@@ -74,7 +74,7 @@ class TargetDynamicsV2(TargetHotglue):
             override_fields_name = {field_name for field_name in fields_mapping.get(sink.name, {})}
             not_overridable_fields = override_fields_name - set(sink.allowed_fields_override)
             if not_overridable_fields:
-                raise Exception(f"Not overridable fields in config for sink={sink.name}, fields={not_overridable_fields}")
+                raise Exception(f"Non-overridable fields provided in config for sink={sink.name}, fields={not_overridable_fields}")
     
     def load_fields_and_dimensions_mapping_config(self):
         config_path = f"../vinni-tenant-config.json"
