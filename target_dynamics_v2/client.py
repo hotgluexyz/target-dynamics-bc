@@ -1,7 +1,7 @@
 import json
 import requests
 
-from target_dynamics_v2.mappers.base_mappers import get_company_from_record
+from target_dynamics_v2.mappers.base_mappers import BaseMapper
 from target_hotglue.common import HGJSONEncoder
 from typing import Dict, List, Optional
 import singer
@@ -174,7 +174,7 @@ class DynamicsClient:
         company_entities_mapping = {}
 
         for record in records:
-            company = get_company_from_record(companies_reference_data, record)
+            company = BaseMapper.get_company_from_record(companies_reference_data, record)
             if not company:
                 continue
 

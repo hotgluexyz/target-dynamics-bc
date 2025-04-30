@@ -2,25 +2,6 @@ from typing import List
 
 from target_dynamics_v2.utils import ReferenceData
 
-def get_company_from_record(company_list: List[dict], record: dict) -> dict:
-    company = None
-
-    if subsidiary_id := record.get("subsidiaryId"):
-        company = next(
-            (company for company in company_list
-            if company["id"] == subsidiary_id),
-            None
-        )
-
-    if (subsidiary_name := record.get("subsidiaryName")) and company is None:
-        company = next(
-            (company for company in company_list
-            if company["name"] == subsidiary_name),
-            None
-        )
-
-    return company
-
 class BaseMapper:
     """A base class responsible for mapping a record ingested in the unified schema format to a payload for NetSuite"""
     
@@ -32,10 +13,30 @@ class BaseMapper:
     ) -> None:
         self.record = record
         self.sink = sink
-        self.field_mappings = {**self.field_mappings, **self.sink._target.fields_mapping.get(self.sink.name, {})}
+        self._map_custom_fields()
         self.reference_data: ReferenceData = reference_data
         self.company = self._map_company()
         self.existing_record = self._find_existing_record(self.reference_data.get(self.sink.name, {}))
+
+    @staticmethod
+    def get_company_from_record(company_list: List[dict], record: dict) -> dict:
+        company = None
+
+        if subsidiary_id := record.get("subsidiaryId"):
+            company = next(
+                (company for company in company_list
+                if company["id"] == subsidiary_id),
+                None
+            )
+
+        if (subsidiary_name := record.get("subsidiaryName")) and company is None:
+            company = next(
+                (company for company in company_list
+                if company["name"] == subsidiary_name),
+                None
+            )
+
+        return company
 
     def _find_existing_record(self, reference_list):
         """Finds an existing record in the reference data by matching internal.
@@ -149,7 +150,7 @@ class BaseMapper:
         return currency_info
 
     def _map_company(self):
-        return get_company_from_record(self.reference_data.get("companies", []), self.record)
+        return BaseMapper.get_company_from_record(self.reference_data.get("companies", []), self.record)
 
     def _validate_company(self):
         if not self.company:
@@ -228,3 +229,6 @@ class BaseMapper:
                         payload[key] = self.record.get(record_key)
                 else:
                     payload[payload_key] = self.record.get(record_key)
+
+    def _map_custom_fields(self):
+        self.field_mappings = {**self.field_mappings, **self.sink._target.fields_mapping.get(self.sink.name, {})}
