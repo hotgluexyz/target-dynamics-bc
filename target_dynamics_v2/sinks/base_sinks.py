@@ -49,6 +49,7 @@ class DynamicsBaseBatchSink(HotglueBaseSink, BatchSink):
             existing_state = self.get_existing_state(hash)
 
             if existing_state:
+                self.logger.info(f"Duplicated record. Won't process it. Record: {record}")
                 continue
             filtered_records.append(record)
 
