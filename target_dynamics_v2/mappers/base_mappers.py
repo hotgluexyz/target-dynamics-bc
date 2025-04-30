@@ -22,12 +22,28 @@ class BaseMapper:
     def _find_existing_record(self, reference_list):
         """Finds an existing record in the reference data by matching internal.
         """
+        if self.company is None:
+            return None
+        
+        existing_entities_in_dynamics = reference_list.get(self.company["id"], [])
 
         if record_id := self.record.get("id"):
             # Try matching internal ID first
             found_record = next(
-                (record for record in reference_list
+                (record for record in existing_entities_in_dynamics
                 if record["id"] == record_id),
+                None
+            )
+            if found_record is None:
+                raise Exception(f"Record ID={record_id} not found Dynamics. Skipping it")
+            
+            return found_record
+            
+        if record_external_id := self.record.get("externalId"):
+            # Try matching externalId
+            found_record = next(
+                (record for record in existing_entities_in_dynamics
+                if record.get("number") == record_external_id),
                 None
             )
             if found_record:
