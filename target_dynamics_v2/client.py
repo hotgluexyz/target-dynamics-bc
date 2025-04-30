@@ -109,37 +109,48 @@ class DynamicsClient:
     def get_entities(self, record_type: str, url_params: Optional[dict] = {}, ids: Optional[list] = [], external_ids: Optional[list] = [], expand: str = None):
         """"Uses batch request to get data because the url can be of any length, allowing for long filters"""
         endpoint = self.ref_request_endpoints[record_type].format(**url_params)
-        filters = []
-
-        if ids:
-            filters += [f"id eq {id}" for id in ids]
-
-        if external_ids:
-            filters += [f"number eq '{external_id}'" for external_id in external_ids]
-
-        if filters:
-            filters = f"$filter={' or '.join(filters)}"
+        entity_filters = []
 
         if expand:
-            expand = f"$expand={expand}"
-
-        query_string = "&".join(filter(None, [expand, filters]))
-        if query_string:
-            endpoint += f"?{query_string}"
-
-        requests_data = [{
-            "url": endpoint,
-            "method": "GET",
-        }]
-
-        responses = self.make_batch_request(requests_data)
-        response = responses[0]
-
-        success, error_message = self._validate_batch_response(response)
-        if not success:
-            return success, error_message, []
+                expand = f"$expand={expand}"
         
-        return True, None, response.get("body", {}).get("value", [])
+        if ids:
+            entity_filters.append([f"id eq {id}" for id in ids])
+
+        if external_ids:
+            entity_filters.append([f"number eq '{external_id}'" for external_id in external_ids])
+
+        if not entity_filters:
+            entity_filters = [[]]
+
+        requests_data = []
+
+        # Dynamics doesn't support filtering on distinct fields, so we need to make one request for each filter type
+        for entity_filter in entity_filters:
+            if entity_filter:
+                entity_filter = f"$filter={' or '.join(entity_filter)}"
+
+            request_url = endpoint
+            query_string = "&".join(filter(None, [expand, entity_filter]))
+            if query_string:
+                request_url += f"?{query_string}"
+
+            requests_data.append({
+                "url": request_url,
+                "method": "GET",
+            })
+
+        batch_responses = self.make_batch_request(requests_data)
+        
+        entities = []
+
+        for response in batch_responses:
+            success, error_message = self._validate_batch_response(response)
+            if not success:
+                return success, error_message, []
+            entities += response.get("body", {}).get("value", [])
+        
+        return True, None, entities
 
     def get_companies(self):
         _, _, companies = self.get_entities("Companies")
