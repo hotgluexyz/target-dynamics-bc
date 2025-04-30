@@ -106,13 +106,16 @@ class DynamicsClient:
         responses = response.json().get("responses", [])
         return responses
 
-    def get_entities(self, record_type: str, url_params: Optional[dict] = {}, ids: Optional[list] = [], expand: str = None):
+    def get_entities(self, record_type: str, url_params: Optional[dict] = {}, ids: Optional[list] = [], external_ids: Optional[list] = [], expand: str = None):
         """"Uses batch request to get data because the url can be of any length, allowing for long filters"""
         endpoint = self.ref_request_endpoints[record_type].format(**url_params)
         filters = []
 
         if ids:
             filters += [f"id eq {id}" for id in ids]
+
+        if external_ids:
+            filters += [f"number eq '{external_id}'" for external_id in external_ids]
 
         if filters:
             filters = f"$filter={' or '.join(filters)}"
