@@ -99,14 +99,22 @@ class BaseMapper:
         address_info = {}
 
         if addresses := self.record.get("addresses", []):
-            address = addresses[0]
+            found_record = next(
+                (address for address in addresses
+                if address["addressType"] == "shipping"),
+                None
+            )
+
+            if not found_record:
+                found_record = addresses[0]
+
             address_info = {
-                "addressLine1": address.get("line1"),
-                "addressLine2": address.get("line2"),
-                "city": address.get("city"),
-                "state": address.get("state"),
-                "country": address.get("country"),
-                "postalCode": address.get("postalCode"),
+                "addressLine1": found_record.get("line1"),
+                "addressLine2": found_record.get("line2"),
+                "city": found_record.get("city"),
+                "state": found_record.get("state"),
+                "country": found_record.get("country"),
+                "postalCode": found_record.get("postalCode"),
             }
 
         return address_info
