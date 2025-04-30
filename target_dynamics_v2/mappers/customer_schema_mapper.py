@@ -2,6 +2,7 @@ from target_dynamics_v2.mappers.base_mappers import BaseMapper
 
 class CustomerSchemaMapper(BaseMapper):
     field_mappings = {
+        "externalId": "number",
         "companyName": "displayName",
         "email": "email",
         "website": "website",
