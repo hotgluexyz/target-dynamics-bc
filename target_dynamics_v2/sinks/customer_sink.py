@@ -24,30 +24,19 @@ class CustomerSink(DynamicsBaseBatchSink):
         mapped_record = CustomerSchemaMapper(record, self, self.reference_data)
         payload = mapped_record.to_dynamics()
 
-        request_params = self.get_request_params(mapped_record)
+        request_params = DynamicsClient.get_entity_upsert_request_params(self.name, mapped_record.company["id"], payload.get("id"))
 
         default_dimensions_requests = []
         if mapped_record.existing_record and payload.get("defaultDimensions"):
             default_dimensions = payload.pop("defaultDimensions")
-            default_dimensions_requests = mapped_record._create_default_dimensions_requests(default_dimensions)
+            default_dimensions_requests = DynamicsClient.create_default_dimensions_requests(
+                self.name,
+                mapped_record.company["id"],
+                payload["id"],
+                default_dimensions
+            )
 
         records = [{"payload": payload, "request_params": request_params }]
         records += default_dimensions_requests
 
         return {"records": records}
-
-    def get_request_params(self, mapped_record):
-        endpoint = DynamicsClient.ref_request_endpoints[self.name]
-        endpoint = endpoint.format(companyId=mapped_record.company['id'])
-        request_params = {
-            "url": endpoint,
-            "method": "POST"
-        }
-
-        if mapped_record.existing_record:
-            request_params = {
-                "url": f"{endpoint}({mapped_record.existing_record['id']})",
-                "method": "PATCH"
-            }
-        
-        return request_params

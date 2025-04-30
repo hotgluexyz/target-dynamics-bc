@@ -1,6 +1,5 @@
 from typing import List
 
-from target_dynamics_v2.client import DynamicsClient
 from target_dynamics_v2.utils import ReferenceData
 
 def get_company_from_record(company_list: List[dict], record: dict) -> dict:
@@ -229,27 +228,3 @@ class BaseMapper:
                         payload[key] = self.record.get(record_key)
                 else:
                     payload[payload_key] = self.record.get(record_key)
-
-    def _create_default_dimensions_requests(self, default_dimensions: List[dict]):
-        """
-        If the Entity already exists we cannot create/update defaultDimensions for it.
-        We need to send a separate request for it
-        """
-        requests = []
-
-        for default_dimension in default_dimensions:
-            endpoint = DynamicsClient.ref_request_endpoints[self.sink.name] + "({entityId})/defaultDimensions"
-            endpoint = endpoint.format(companyId=self.company['id'], entityId=self.existing_record["id"])
-            request_params = {
-                "url": endpoint,
-                "method": "POST"
-            }
-
-            if default_dimension_id := default_dimension.pop("id", None):
-                request_params = {
-                    "url": f"{endpoint}({default_dimension_id})",
-                    "method": "PATCH"
-                }
-            requests.append({"payload": default_dimension, "request_params": request_params})
-
-        return requests

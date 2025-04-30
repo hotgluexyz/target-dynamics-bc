@@ -204,3 +204,44 @@ class DynamicsClient:
 
         return existing_company_entities
     
+    @staticmethod
+    def create_default_dimensions_requests(record_type: str, company_id: str, entity_id: str, default_dimensions: List[dict]):
+        """
+        If the Entity already exists we cannot create/update defaultDimensions for it.
+        We need to send a separate request for it
+        """
+        requests = []
+
+        for default_dimension in default_dimensions:
+            endpoint = DynamicsClient.ref_request_endpoints[record_type] + "({entityId})/defaultDimensions"
+            endpoint = endpoint.format(companyId=company_id, entityId=entity_id)
+            request_params = {
+                "url": endpoint,
+                "method": "POST"
+            }
+
+            if default_dimension_id := default_dimension.pop("id", None):
+                request_params = {
+                    "url": f"{endpoint}({default_dimension_id})",
+                    "method": "PATCH"
+                }
+            requests.append({"payload": default_dimension, "request_params": request_params})
+
+        return requests
+    
+    @staticmethod
+    def get_entity_upsert_request_params(record_type: str, company_id: str, entity_id: str = None):
+        endpoint = DynamicsClient.ref_request_endpoints[record_type]
+        endpoint = endpoint.format(companyId=company_id)
+        request_params = {
+            "url": endpoint,
+            "method": "POST"
+        }
+
+        if entity_id:
+            request_params = {
+                "url": f"{endpoint}({entity_id})",
+                "method": "PATCH"
+            }
+        
+        return request_params
