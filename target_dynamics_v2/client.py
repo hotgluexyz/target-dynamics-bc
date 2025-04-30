@@ -1,10 +1,8 @@
 import json
 import requests
 
-from target_hotglue.client import HotglueSink
+from target_dynamics_v2.mappers.base_mappers import get_company_from_record
 from target_hotglue.common import HGJSONEncoder
-from target_dynamics_v2.utils import Company
-from singer_sdk.plugin_base import PluginBase
 from typing import Dict, List, Optional
 import singer
 
@@ -168,3 +166,41 @@ class DynamicsClient:
             company["dimensions"] = dimensions
 
         return True, None, companies
+    
+    def get_existing_entities_for_records(self, companies_reference_data: List[Dict], record_type: str, records: List[Dict]) -> List[Dict]:
+        """Maps records to companies and returns a list of entities based on 'records'"""
+        
+        # we need to map the company to query the existing customers
+        company_entities_mapping = {}
+
+        for record in records:
+            company = get_company_from_record(companies_reference_data, record)
+            if not company:
+                continue
+
+            if company["id"] not in company_entities_mapping.keys():
+                company_entities_mapping[company["id"]] = {"ids": [], "external_ids": []}
+            
+            if rec_id := record.get("id"):
+                company_entities_mapping[company["id"]]["ids"].append(rec_id)
+
+            if rec_external_id := record.get("externalId"):
+                company_entities_mapping[company["id"]]["external_ids"].append(rec_external_id)
+
+        existing_company_entities = {}
+        # make requests to get existing entities for each company from Dynamics
+        for company_id in company_entities_mapping:
+            url_params = { "companyId": company_id }
+            _, _, entities = self.get_entities(
+                record_type,
+                url_params=url_params,
+                ids=company_entities_mapping[company_id]["ids"],
+                external_ids=company_entities_mapping[company_id]["external_ids"],
+                expand="defaultDimensions"
+            )
+            if company_id not in existing_company_entities.keys():
+                existing_company_entities[company_id] = []
+            existing_company_entities[company_id] += entities
+
+        return existing_company_entities
+    
