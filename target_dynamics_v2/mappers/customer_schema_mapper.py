@@ -25,6 +25,8 @@ class CustomerSchemaMapper(BaseMapper):
         is_active = self.record.get("isActive")
         if is_active is False:
             payload["blocked"] = "All"
+        elif is_active is True:
+            payload["blocked"] = " "
 
         self._map_fields(payload)
 
