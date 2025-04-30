@@ -19,9 +19,12 @@ class CustomerSchemaMapper(BaseMapper):
             **self._map_address(),
             **self._map_currency(),
             **self._map_default_dimensions_dimensions(),
-            "blocked": " ",
             "type": "Person" if self.record.get("isPerson") else "Company",
         }
+
+        is_active = self.record.get("isActive")
+        if is_active is False:
+            payload["blocked"] = "All"
 
         self._map_fields(payload)
 
