@@ -2,7 +2,7 @@
     "field_mappings": {
         "Customers": {
             "parentId": { "type": "field", "name": "cust_parent_id" },
-            "category": { "type": "dimension", "name": "VENDOR_CATEGORY" }
+            "category": { "type": "dimension", "name": "CUSTOMER_CATEGORY" }
         },
         "Vendors": {
             "category": { "type": "dimension", "name": "VENDOR_CATEGORY" }
