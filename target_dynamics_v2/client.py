@@ -40,7 +40,6 @@ class DynamicsClient:
 
         request = self.get_auth()
         request.headers.update(request_headers)
-        request.request(method=method, url=url, params=params)
 
         json_data = json.dumps(data, cls=HGJSONEncoder) if data else None
 
