@@ -3,6 +3,25 @@ from typing import List
 from target_dynamics_v2.client import DynamicsClient
 from target_dynamics_v2.utils import ReferenceData
 
+def get_company_from_record(company_list: List[dict], record: dict) -> dict:
+    company = None
+
+    if subsidiary_id := record.get("subsidiaryId"):
+        company = next(
+            (company for company in company_list
+            if company["id"] == subsidiary_id),
+            None
+        )
+
+    if (subsidiary_name := record.get("subsidiaryName")) and company is None:
+        company = next(
+            (company for company in company_list
+            if company["name"] == subsidiary_name),
+            None
+        )
+
+    return company
+
 class BaseMapper:
     """A base class responsible for mapping a record ingested in the unified schema format to a payload for NetSuite"""
     
@@ -16,8 +35,8 @@ class BaseMapper:
         self.sink = sink
         self.field_mappings = {**self.field_mappings, **self.sink._target.fields_mapping.get(self.sink.name, {})}
         self.reference_data: ReferenceData = reference_data
-        self.existing_record = self._find_existing_record(self.reference_data.get(self.sink.name, []))
-        self._map_company()
+        self.company = self._map_company()
+        self.existing_record = self._find_existing_record(self.reference_data.get(self.sink.name, {}))
 
     def _find_existing_record(self, reference_list):
         """Finds an existing record in the reference data by matching internal.
@@ -51,27 +70,10 @@ class BaseMapper:
         
         return None
 
-    def _find_company_by_id(self, company_id):
-        found_record = next(
-            (company for company in self.reference_data["companies"]
-            if company["id"] == company_id),
-            None
-        )
-
-        return found_record
-    
-    def _find_company_by_name(self, company_name):
-        found_record = next(
-            (company for company in self.reference_data["companies"]
-            if company["name"] == company_name),
-            None
-        )
-
-        return found_record
-
     def _map_internal_id(self):
         if self.existing_record:
             return { "id": self.existing_record["id"]}
+
         return {}
 
     def _map_phone_number(self):
@@ -148,15 +150,7 @@ class BaseMapper:
         return currency_info
 
     def _map_company(self):
-        company = None
-
-        if subsidiary_id := self.record.get("subsidiaryId"):
-            company = self._find_company_by_id(subsidiary_id)
-
-        if (subsidiary_name := self.record.get("subsidiaryName")) and company is None:
-            company = self._find_company_by_name(subsidiary_name)
-
-        self.company = company
+        return get_company_from_record(self.reference_data.get("companies", []), self.record)
 
     def _validate_company(self):
         if not self.company:
