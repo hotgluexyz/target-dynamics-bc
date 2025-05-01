@@ -1,0 +1,16 @@
+{
+    "field_mappings": {
+        "Customers": {
+            "parentId": { "type": "field", "name": "cust_parent_id" },
+            "category": { "type": "dimension", "name": "CUSTOMER_CATEGORY" }
+        },
+        "Vendors": {
+            "category": { "type": "dimension", "name": "VENDOR_CATEGORY" }
+        }
+    },
+    "dimension_mappings": {
+        "class": "CLASS_1",
+        "department": "ORG",
+        "location": "LOCATIONS"
+    }
+}

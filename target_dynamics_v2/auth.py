@@ -6,7 +6,6 @@ class DynamicsAuth(requests.auth.AuthBase):
     def __init__(self, config):
         self.__config = config
         # self.__config_path = parsed_args.config_path
-        self.__resource = "https://{}.crm.dynamics.com".format(config["org"])
         self.__client_id = config["client_id"]
         self.__client_secret = config["client_secret"]
         self.__redirect_uri = config["redirect_uri"]
@@ -25,8 +24,7 @@ class DynamicsAuth(requests.auth.AuthBase):
                     "client_secret": self.__client_secret,
                     "redirect_uri": self.__redirect_uri,
                     "refresh_token": self.__refresh_token,
-                    "grant_type": "refresh_token",
-                    "resource": self.__resource,
+                    "grant_type": "refresh_token"
                 },
             )
 
