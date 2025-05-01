@@ -20,11 +20,11 @@ class DynamicsClient:
         "Dimensions": "companies({companyId})/dimensions"
     }
 
-    def __init__(self, config) -> None:
-        self.config = config
+    def __init__(self, target) -> None:
+        self.config = target.config
         environment = self.config.get("environment_name")
         self.url = self.config.get("full_url", f"https://api.businesscentral.dynamics.com/v2.0/{environment}/api/v2.0/")
-        self.auth = DynamicsAuth(dict(self.config))
+        self.auth = DynamicsAuth(target)
 
     def get_auth(self):
         r = requests.Session()

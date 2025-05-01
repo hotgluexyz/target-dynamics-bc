@@ -30,7 +30,7 @@ class TargetDynamicsV2(TargetHotglue):
             parse_env_config=parse_env_config,
             validate_config=validate_config,
         )
-        self.dynamics_client = DynamicsClient(self.config)
+        self.dynamics_client = DynamicsClient(self)
         self.reference_data: ReferenceData = self.get_reference_data()
         self.dimensions_mapping, self.fields_mapping = self.load_fields_and_dimensions_mapping_config()
 
