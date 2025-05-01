@@ -1,5 +1,26 @@
 from typing import TypedDict, List
 
+class InvalidConfigurationError(Exception):
+    pass
+
+class DimensionDefinitionNotFound(InvalidConfigurationError):
+    pass
+
+class InvalidCustomFieldDefinition(InvalidConfigurationError):
+    pass
+
+class InvalidInputError(Exception):
+    pass
+
+class RecordNotFound(InvalidInputError):
+    pass
+
+class CompanyNotFound(InvalidInputError):
+    pass
+
+class InvalidDimensionValue(InvalidInputError):
+    pass
+
 class Currency(TypedDict):
     id: str
     code: str

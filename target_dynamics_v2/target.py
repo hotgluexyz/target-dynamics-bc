@@ -9,6 +9,7 @@ from target_hotglue.target import TargetHotglue
 from target_dynamics_v2.client import DynamicsClient
 from target_dynamics_v2.sinks.customer_sink import CustomerSink
 from target_dynamics_v2.utils import ReferenceData
+from target_dynamics_v2.utils import ReferenceData, DimensionDefinitionNotFound, InvalidCustomFieldDefinition
 
 class TargetDynamicsV2(TargetHotglue):
     """Sample target for DynamicsV2."""
@@ -67,14 +68,14 @@ class TargetDynamicsV2(TargetHotglue):
                 found_dimension = next((dimension for dimension in company["dimensions"] if dimension["code"] == dimension_name), None)
 
                 if not found_dimension:
-                    raise Exception(f"Could not find dimension={dimension_name} for companyId={company['id']}")    
+                    raise DimensionDefinitionNotFound(f"Could not find dimension={dimension_name} for companyId={company['id']}")
 
     def validate_fields_mapping(self, fields_mapping: dict):
         for sink in self.SINK_TYPES:
             override_fields_name = {field_name for field_name in fields_mapping.get(sink.name, {})}
             not_overridable_fields = override_fields_name - set(sink.allowed_fields_override)
             if not_overridable_fields:
-                raise Exception(f"Non-overridable fields provided in config for sink={sink.name}, fields={not_overridable_fields}")
+                raise InvalidCustomFieldDefinition(f"Non-overridable fields provided in config for sink={sink.name}, fields={not_overridable_fields}")
     
     def load_fields_and_dimensions_mapping_config(self):
         config_path = f"../vinni-tenant-config.json"

@@ -1,6 +1,6 @@
 from typing import List
 
-from target_dynamics_v2.utils import ReferenceData
+from target_dynamics_v2.utils import ReferenceData, CompanyNotFound, InvalidDimensionValue, RecordNotFound
 
 class BaseMapper:
     """A base class responsible for mapping a record ingested in the unified schema format to a payload for NetSuite"""
@@ -54,7 +54,7 @@ class BaseMapper:
                 None
             )
             if found_record is None:
-                raise Exception(f"Record ID={record_id} not found Dynamics. Skipping it")
+                raise RecordNotFound(f"Record ID={record_id} not found Dynamics. Skipping it")
             
             return found_record
             
@@ -164,7 +164,7 @@ class BaseMapper:
         if not self.company:
             subsidiary_id = self.record.get("subsidiaryId")
             subsidiary_name = self.record.get("subsidiaryName")
-            raise Exception(f"Could not find Company with subsidiaryId={subsidiary_id} / subsidiaryName={subsidiary_name}")
+            raise CompanyNotFound(f"Could not find Company with subsidiaryId={subsidiary_id} / subsidiaryName={subsidiary_name}")
 
     def _get_dimension(self, dimension_code: str):
         return next(
@@ -224,7 +224,7 @@ class BaseMapper:
                     default_dimension["id"] = existing_default_dimension["id"]
                 default_dimensions.append(default_dimension)  
             else:
-                raise Exception(f"Dimension could not find a Dimension Value for dimension {dimension['code']} when looking up dimension id={field_id} / code={field_external_id} / displayName={field_name}")
+                raise InvalidDimensionValue(f"Dimension could not find a Dimension Value for dimension {dimension['code']} when looking up dimension id={field_id} / code={field_external_id} / displayName={field_name}")
 
         return {"defaultDimensions": default_dimensions} if default_dimensions else {}
 
