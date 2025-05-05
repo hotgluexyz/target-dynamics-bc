@@ -1,3 +1,4 @@
+import datetime
 from typing import List
 
 from target_dynamics_v2.utils import ReferenceData, CompanyNotFound, InvalidDimensionValue, RecordNotFound
@@ -261,7 +262,12 @@ class BaseMapper:
                     for key in payload_key:
                         payload[key] = self.record.get(record_key)
                 else:
-                    payload[payload_key] = self.record.get(record_key)
+                    record_value = self.record.get(record_key)
+                    if isinstance(record_value, datetime.datetime):
+                        record_value = record_value.isoformat()
+                        payload[payload_key] = record_value[:10] if payload_key.endswith("Date") else record_value
+                    else:
+                        payload[payload_key] = record_value
 
     def _map_custom_fields(self):
         self.field_mappings = {**self.field_mappings, **self.sink._target.fields_mapping.get(self.sink.name, {})}
