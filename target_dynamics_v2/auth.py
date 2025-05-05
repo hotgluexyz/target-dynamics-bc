@@ -3,13 +3,13 @@ import json
 from datetime import datetime, timedelta
 
 class DynamicsAuth(requests.auth.AuthBase):
-    def __init__(self, config):
-        self.__config = config
-        # self.__config_path = parsed_args.config_path
-        self.__client_id = config["client_id"]
-        self.__client_secret = config["client_secret"]
-        self.__redirect_uri = config["redirect_uri"]
-        self.__refresh_token = config["refresh_token"]
+    def __init__(self, target):
+        self.__config = dict(target.config)
+        self.__config_path = target._config_file_path
+        self.__client_id = self.__config["client_id"]
+        self.__client_secret = self.__config["client_secret"]
+        self.__redirect_uri = self.__config["redirect_uri"]
+        self.__refresh_token = self.__config["refresh_token"]
 
         self.__session = requests.Session()
         self.__access_token = None
@@ -38,7 +38,7 @@ class DynamicsAuth(requests.auth.AuthBase):
             self.__config["expires_in"] = data["expires_in"]
             self.__config["access_token"] = data["access_token"]
 
-            with open("config.json", "w") as outfile:
+            with open(self.__config_path, "w") as outfile:
                 json.dump(self.__config, outfile, indent=4)
 
             self.__expires_at = datetime.utcnow() + timedelta(
