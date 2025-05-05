@@ -1,0 +1,40 @@
+from typing import List
+
+from target_dynamics_v2.client import DynamicsClient
+from target_dynamics_v2.mappers.vendor_schema_mapper import VendorSchemaMapper
+from target_dynamics_v2.sinks.base_sinks import DynamicsBaseBatchSink
+
+class VendorSink(DynamicsBaseBatchSink):
+    name = "Vendors"
+
+    def preprocess_batch(self, records: List[dict]):
+        # fetch reference data related to existing vendors
+        existing_company_vendors = self.dynamics_client.get_existing_entities_for_records(
+            self._target.reference_data.get("companies", []),
+            self.name,
+            records
+        )
+
+        self.reference_data = {**self._target.reference_data, self.name: existing_company_vendors}
+
+    def process_batch_record(self, record: dict) -> dict:
+        # perform the mapping
+        mapped_record = VendorSchemaMapper(record, self, self.reference_data)
+        payload = mapped_record.to_dynamics()
+
+        request_params = DynamicsClient.get_entity_upsert_request_params(self.name, mapped_record.company["id"], payload.get("id"))
+
+        default_dimensions_requests = []
+        if mapped_record.existing_record and payload.get("defaultDimensions"):
+            default_dimensions = payload.pop("defaultDimensions")
+            default_dimensions_requests = DynamicsClient.create_default_dimensions_requests(
+                self.name,
+                mapped_record.company["id"],
+                payload["id"],
+                default_dimensions
+            )
+
+        records = [{"payload": payload, "request_params": request_params }]
+        records += default_dimensions_requests
+
+        return {"records": records}

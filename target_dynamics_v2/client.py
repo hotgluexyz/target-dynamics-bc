@@ -17,6 +17,7 @@ class DynamicsClient:
         "Currencies": "companies({companyId})/currencies",
         "PaymentMethods": "companies({companyId})/paymentMethods",
         "Customers": "companies({companyId})/customers",
+        "Vendors": "companies({companyId})/vendors",
         "Dimensions": "companies({companyId})/dimensions"
     }
 
