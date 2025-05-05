@@ -104,7 +104,7 @@ class DynamicsClient:
         responses = response.json().get("responses", [])
         return responses
 
-    def get_entities(self, record_type: str, url_params: Optional[dict] = {}, ids: Optional[list] = [], external_ids: Optional[list] = [], expand: str = None):
+    def get_entities(self, record_type: str, url_params: Optional[dict] = {}, filters: Optional[Dict[str, List]] = {}, expand: str = None):
         """"Uses batch request to get data because the url can be of any length, allowing for long filters"""
         endpoint = self.ref_request_endpoints[record_type].format(**url_params)
         entity_filters = []
@@ -112,11 +112,9 @@ class DynamicsClient:
         if expand:
                 expand = f"$expand={expand}"
         
-        if ids:
-            entity_filters.append([f"id eq {id}" for id in ids])
-
-        if external_ids:
-            entity_filters.append([f"number eq '{external_id}'" for external_id in external_ids])
+        for filter_field_name, filter_values in filters.items():
+            if filter_values:
+                entity_filters.append([f"{filter_field_name} eq {filter_value}" for filter_value in filter_values])
 
         if not entity_filters:
             entity_filters = [[]]
@@ -167,7 +165,7 @@ class DynamicsClient:
 
         return True, None, companies
     
-    def get_existing_entities_for_records(self, companies_reference_data: List[Dict], record_type: str, records: List[Dict]) -> List[Dict]:
+    def get_existing_entities_for_records(self, companies_reference_data: List[Dict], record_type: str, records: List[Dict], filter_mappings: List[Dict], expand: Optional[str] = None) -> Dict[str, List]:
         """Maps records to companies and returns a list of entities based on 'records'"""
         
         # we need to map the company to query the existing customers
@@ -179,13 +177,20 @@ class DynamicsClient:
                 continue
 
             if company["id"] not in company_entities_mapping.keys():
-                company_entities_mapping[company["id"]] = {"ids": [], "external_ids": []}
+                company_entities_mapping[company["id"]] = {}
             
-            if rec_id := record.get("id"):
-                company_entities_mapping[company["id"]]["ids"].append(rec_id)
+            for filter_mapping in filter_mappings:
+                filter_field_from = filter_mapping["field_from"]
+                filter_field_to = filter_mapping["field_to"]
+                filter_field_should_quote = filter_mapping["should_quote"]
 
-            if rec_external_id := record.get("externalId"):
-                company_entities_mapping[company["id"]]["external_ids"].append(rec_external_id)
+                if filter_field_to not in company_entities_mapping[company["id"]]:
+                    company_entities_mapping[company["id"]][filter_field_to] = []
+
+                if rec_value := record.get(filter_field_from):
+                    if filter_field_should_quote:
+                        rec_value = f"'{rec_value}'"
+                    company_entities_mapping[company["id"]][filter_field_to].append(rec_value)
 
         existing_company_entities = {}
         # make requests to get existing entities for each company from Dynamics
@@ -194,9 +199,8 @@ class DynamicsClient:
             _, _, entities = self.get_entities(
                 record_type,
                 url_params=url_params,
-                ids=company_entities_mapping[company_id]["ids"],
-                external_ids=company_entities_mapping[company_id]["external_ids"],
-                expand="defaultDimensions"
+                filters=company_entities_mapping[company_id],
+                expand=expand
             )
             if company_id not in existing_company_entities.keys():
                 existing_company_entities[company_id] = []
