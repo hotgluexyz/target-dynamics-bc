@@ -220,6 +220,39 @@ class BaseMapper:
 
         return {"defaultDimensions": default_dimensions} if default_dimensions else {}
 
+    def _map_vendor(self):
+        vendor_info = {}
+
+        found_vendor = None
+        vendors_reference_data = self.reference_data.get("Vendors", {}).get(self.company["id"], [])
+
+        if vendor_id := self.record.get("vendorId"):
+            found_vendor = next(
+                (vendor for vendor in vendors_reference_data
+                if vendor["id"] == vendor_id),
+                None
+            )
+
+        if (vendor_number := self.record.get("vendorExternalId")) and not found_vendor:
+            found_vendor = next(
+                (vendor for vendor in vendors_reference_data
+                if vendor["number"] == vendor_number),
+                None
+            )
+
+        if (vendor_name := self.record.get("vendorName")) and not found_vendor:
+            found_vendor = next(
+                (vendor for vendor in vendors_reference_data
+                if vendor["displayName"] == vendor_name),
+                None
+            )
+
+        if found_vendor:
+            vendor_info = {
+                "vendorId": found_vendor["id"]
+            }
+
+        return vendor_info
 
     def _map_fields(self, payload):
         for record_key, payload_key in self.field_mappings.items():
