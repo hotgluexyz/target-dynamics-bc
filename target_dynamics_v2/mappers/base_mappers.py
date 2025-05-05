@@ -4,7 +4,8 @@ from target_dynamics_v2.utils import ReferenceData, CompanyNotFound, InvalidDime
 
 class BaseMapper:
     """A base class responsible for mapping a record ingested in the unified schema format to a payload for NetSuite"""
-    
+    existing_record_pk_mappings = []
+
     def __init__(
             self,
             record,
@@ -46,27 +47,18 @@ class BaseMapper:
         
         existing_entities_in_dynamics = reference_list.get(self.company["id"], [])
 
-        if record_id := self.record.get("id"):
-            # Try matching internal ID first
-            found_record = next(
-                (record for record in existing_entities_in_dynamics
-                if record["id"] == record_id),
-                None
-            )
-            if found_record is None:
-                raise RecordNotFound(f"Record ID={record_id} not found Dynamics. Skipping it")
-            
-            return found_record
-            
-        if record_external_id := self.record.get("externalId"):
-            # Try matching externalId
-            found_record = next(
-                (record for record in existing_entities_in_dynamics
-                if record.get("number") == record_external_id),
-                None
-            )
-            if found_record:
-                return found_record
+        for existing_record_pk_mapping in self.existing_record_pk_mappings:
+            if record_id := self.record.get(existing_record_pk_mapping["record_field"]):
+                found_record = next(
+                    (dynamics_record for dynamics_record in existing_entities_in_dynamics
+                    if dynamics_record[existing_record_pk_mapping["dynamics_field"]] == record_id),
+                    None
+                )
+                if existing_record_pk_mapping["required_if_present"] and found_record is None:
+                    raise RecordNotFound(f"Record {existing_record_pk_mapping['record_field']}={record_id} not found Dynamics. Skipping it")
+                
+                if found_record:
+                    return found_record
         
         return None
 
