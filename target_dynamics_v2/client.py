@@ -14,6 +14,8 @@ LOGGER = singer.get_logger()
 class DynamicsClient:
     ref_request_endpoints = {
         "Companies": "companies",
+        "Accounts": "companies({companyId})/accounts",
+        "Locations": "companies({companyId})/locations",
         "Currencies": "companies({companyId})/currencies",
         "PaymentMethods": "companies({companyId})/paymentMethods",
         "Customers": "companies({companyId})/customers",
@@ -162,6 +164,12 @@ class DynamicsClient:
 
             _, _, dimensions = self.get_entities("Dimensions", url_params, expand="dimensionValues")
             company["dimensions"] = dimensions
+
+            _, _, accounts = self.get_entities("Accounts", url_params)
+            company["accounts"] = accounts
+
+            _, _, locations = self.get_entities("Locations", url_params)
+            company["locations"] = locations
 
         return True, None, companies
     

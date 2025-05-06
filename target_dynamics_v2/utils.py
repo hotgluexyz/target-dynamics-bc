@@ -48,6 +48,31 @@ class Dimension(TypedDict):
     displayName: str
     dimensionValues: List[DimensionValue]
 
+class Account(TypedDict):
+    id: str
+    number: str
+    displayName: str
+    category: str
+    subCategory: str
+    blocked: bool
+    accountType: str
+    lastModifiedDateTime: str
+
+class Location(TypedDict):
+    id: str
+    code: str
+    displayName: str
+    contact: str
+    addressLine1: str
+    addressLine2: str
+    city: str
+    state: str
+    country: str
+    postalCode: str
+    phoneNumber: str
+    email: str
+    website: str
+    lastModifiedDateTime: str
 class Company(TypedDict):
     id: str
     name: str
@@ -56,6 +81,8 @@ class Company(TypedDict):
     currencies: List[Currency]
     paymentMethods: List[PaymentMethod]
     dimensions: List[Dimension]
+    accounts: List[Account]
+    locations: List[Location]
 
 class ReferenceData(TypedDict):
     companies: List[Company]
