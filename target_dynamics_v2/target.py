@@ -101,7 +101,7 @@ class TargetDynamicsV2(TargetHotglue):
 
     def load_fields_and_dimensions_mapping_config(self):
         tenant_config = self.get_tenant_config()
-        config = tenant_config.get("dynamics_bc_field_mapping")
+        config = tenant_config.get("dynamics_bc")
 
         if config == None:
             raise InvalidConfigurationError("dynamics_bc_field_mapping is not provided in the tenant-config.json")
