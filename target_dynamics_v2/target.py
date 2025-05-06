@@ -81,19 +81,23 @@ class TargetDynamicsV2(TargetHotglue):
 
     def get_tenant_config(self):
         snapshot_directory = self.config.get("snapshot_dir", None)
-        if snapshot_directory == None:
-            raise InvalidConfigurationError("snapshot_dir is not provided in the config")
+        tenant_config = None
 
-        config_path = os.path.join(snapshot_directory, "tenant-config.json")
-
-        if not os.path.exists(config_path):
-            raise InvalidConfigurationError(f"tenant-config.json does not exist in the snapshot directory={snapshot_directory}")
-
-        with open(config_path) as f:
-            tenant_config = json.load(f)
+        if snapshot_directory:
+            config_path = os.path.join(snapshot_directory, "tenant-config.json")
+            if not os.path.exists(config_path):
+                raise InvalidConfigurationError(f"tenant-config.json does not exist in the snapshot directory={snapshot_directory}")
+            with open(config_path) as f:
+                tenant_config = json.load(f)
+        else:
+            tenant_config = {
+                "dynamics_bc_field_mapping": {
+                    "field_mappings": {
+                    }
+                }
+            }
 
         return tenant_config
-
 
     def load_fields_and_dimensions_mapping_config(self):
         tenant_config = self.get_tenant_config()
