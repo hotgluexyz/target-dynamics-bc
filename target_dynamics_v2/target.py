@@ -9,7 +9,7 @@ from target_hotglue.target import TargetHotglue
 from target_dynamics_v2.client import DynamicsClient
 from target_dynamics_v2.sinks.customer_sink import CustomerSink
 from target_dynamics_v2.sinks.vendor_sink import VendorSink
-from target_dynamics_v2.utils import ReferenceData, DimensionDefinitionNotFound, InvalidCustomFieldDefinition
+from target_dynamics_v2.utils import ReferenceData, DimensionDefinitionNotFound, InvalidCustomFieldDefinition, InvalidConfigurationError
 
 class TargetDynamicsV2(TargetHotglue):
     """Sample target for DynamicsV2."""
@@ -31,13 +31,14 @@ class TargetDynamicsV2(TargetHotglue):
             parse_env_config=parse_env_config,
             validate_config=validate_config,
         )
+
         self.dynamics_client = DynamicsClient(self)
         self.reference_data: ReferenceData = self.get_reference_data()
         self.dimensions_mapping, self.fields_mapping = self.load_fields_and_dimensions_mapping_config()
 
     def get_reference_data(self) -> ReferenceData:
         self.logger.info(f"Getting reference data...")
-        
+
         reference_data: ReferenceData = ReferenceData()
         _, _, companies = self.dynamics_client.get_companies()
         reference_data["companies"] = companies
@@ -52,7 +53,7 @@ class TargetDynamicsV2(TargetHotglue):
             sink_mapping = {field_name: field_config["name"] for field_name, field_config in sink_field_map.items() if field_config.get("type") == type}
             if sink_mapping:
                 filtered_mapping[sink] = sink_mapping
-        
+
         return filtered_mapping
 
     def validate_dimensions_mapping(self, dimensions_mapping: dict):
@@ -77,15 +78,29 @@ class TargetDynamicsV2(TargetHotglue):
             not_overridable_fields = override_fields_name - set(sink.allowed_fields_override)
             if not_overridable_fields:
                 raise InvalidCustomFieldDefinition(f"Non-overridable fields provided in config for sink={sink.name}, fields={not_overridable_fields}")
-    
-    def load_fields_and_dimensions_mapping_config(self):
-        config_path = f"../vinni-tenant-config.json"
 
-        config= {}
-        # Verifies if `tenant-config.json` exists
-        if os.path.exists(config_path):
-            with open(config_path) as f:
-                config = json.load(f)
+    def get_tenant_config(self):
+        snapshot_directory = self.config.get("snapshot_dir", None)
+        if snapshot_directory == None:
+            raise InvalidConfigurationError("snapshot_dir is not provided in the config")
+
+        config_path = os.path.join(snapshot_directory, "tenant-config.json")
+
+        if not os.path.exists(config_path):
+            raise InvalidConfigurationError(f"tenant-config.json does not exist in the snapshot directory={snapshot_directory}")
+
+        with open(config_path) as f:
+            tenant_config = json.load(f)
+
+        return tenant_config
+
+
+    def load_fields_and_dimensions_mapping_config(self):
+        tenant_config = self.get_tenant_config()
+        config = tenant_config.get("dynamics_bc_field_mapping")
+
+        if config == None:
+            raise InvalidConfigurationError("dynamics_bc_field_mapping is not provided in the tenant-config.json")
 
         dimensions_mapping = {}
         fields_mapping = {}
@@ -95,7 +110,7 @@ class TargetDynamicsV2(TargetHotglue):
 
             self.validate_dimensions_mapping(dimensions_mapping)
             self.validate_fields_mapping(fields_mapping)
-        
+
         return dimensions_mapping, fields_mapping
 
     config_jsonschema = th.PropertiesList(
@@ -119,7 +134,7 @@ class TargetDynamicsV2(TargetHotglue):
             th.StringType,
             required=True
         ),
-        
+
     ).to_dict()
 
 if __name__ == '__main__':
