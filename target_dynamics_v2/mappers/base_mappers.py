@@ -198,7 +198,7 @@ class BaseMapper:
 
     def _map_default_dimensions_dimensions(self):
         default_dimensions = []
-        dimension_mapping = self.sink._target.dimensions_mapping.get(self.sink.name, {})
+        dimension_mapping = self.sink._target.dimensions_mapping.get(self.name, {})
         for field_name, dimension_code in dimension_mapping.items():
             dimension = self._get_dimension(dimension_code)
             field_id = self.record.get(f"{field_name}Id", None)
@@ -270,4 +270,4 @@ class BaseMapper:
                         payload[payload_key] = record_value
 
     def _map_custom_fields(self):
-        self.field_mappings = {**self.field_mappings, **self.sink._target.fields_mapping.get(self.sink.name, {})}
+        self.field_mappings = {**self.field_mappings, **self.sink._target.fields_mapping.get(self.name, {})}

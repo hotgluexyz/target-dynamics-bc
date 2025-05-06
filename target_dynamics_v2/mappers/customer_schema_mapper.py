@@ -1,6 +1,7 @@
 from target_dynamics_v2.mappers.base_mappers import BaseMapper
 
 class CustomerSchemaMapper(BaseMapper):
+    name = "Customers"
     existing_record_pk_mappings = [
         {"record_field": "id", "dynamics_field": "id", "required_if_present": True},
         {"record_field": "externalId", "dynamics_field": "number", "required_if_present": False}
