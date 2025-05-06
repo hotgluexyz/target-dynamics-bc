@@ -44,7 +44,10 @@ class TargetDynamicsV2(TargetHotglue):
         reference_data["companies"] = companies
 
         self.logger.info(f"Done getting reference data...")
+
+        raise Exception("Encountered unexpected error")
         return reference_data
+
 
     def parse_field_mapping(self, type: str, field_mappings: dict):
         filtered_mapping = {}
