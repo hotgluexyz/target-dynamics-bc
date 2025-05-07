@@ -254,6 +254,41 @@ class BaseMapper:
             }
 
         return vendor_info
+    
+    def _map_account(self):
+        account_info = {}
+
+        found_account = None
+        accounts_reference_data = self.company["accounts"]
+
+        if account_id := self.record.get("accountId"):
+            found_account = next(
+                (account for account in accounts_reference_data
+                if account["id"] == account_id),
+                None
+            )
+
+        if (account_number := self.record.get("accountNumber")) and not found_account:
+            found_account = next(
+                (account for account in accounts_reference_data
+                if account["number"] == account_number),
+                None
+            )
+
+        if (account_name := self.record.get("accountName")) and not found_account:
+            found_account = next(
+                (account for account in accounts_reference_data
+                if account["displayName"] == account_name),
+                None
+            )
+
+        if found_account:
+            account_info = {
+                "accountId": found_account["id"]
+            }
+
+        return account_info
+    
     def _map_location(self):
         location_info = {}
 
