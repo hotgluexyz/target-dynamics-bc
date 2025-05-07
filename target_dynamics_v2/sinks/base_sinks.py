@@ -66,6 +66,9 @@ class DynamicsBaseBatchSink(HotglueBaseSink, BatchSink):
         return unique_records
 
     def make_batch_request(self, records: List[dict], transaction_type: str = "non_atomic"):
+        if not records:
+            return []
+
         responses = []
         for record in records:
             requests_data = []
