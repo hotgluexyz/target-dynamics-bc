@@ -7,6 +7,7 @@ from singer_sdk import typing as th
 from target_hotglue.target import TargetHotglue
 
 from target_dynamics_v2.client import DynamicsClient
+from target_dynamics_v2.sinks.bill_sink import BillSink
 from target_dynamics_v2.sinks.customer_sink import CustomerSink
 from target_dynamics_v2.sinks.vendor_sink import VendorSink
 from target_dynamics_v2.utils import ReferenceData, DimensionDefinitionNotFound, InvalidCustomFieldDefinition
@@ -15,7 +16,8 @@ class TargetDynamicsV2(TargetHotglue):
     """Sample target for DynamicsV2."""
     SINK_TYPES = [
         CustomerSink,
-        VendorSink
+        VendorSink,
+        BillSink
     ]
     name = "target-dynamics-v2"
     def __init__(

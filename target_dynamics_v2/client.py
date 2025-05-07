@@ -16,11 +16,14 @@ class DynamicsClient:
         "Companies": "companies",
         "Accounts": "companies({companyId})/accounts",
         "Locations": "companies({companyId})/locations",
+        "Items": "companies({companyId})/items",
         "Currencies": "companies({companyId})/currencies",
         "PaymentMethods": "companies({companyId})/paymentMethods",
         "Customers": "companies({companyId})/customers",
         "Vendors": "companies({companyId})/vendors",
-        "Dimensions": "companies({companyId})/dimensions"
+        "Dimensions": "companies({companyId})/dimensions",
+        "purchaseInvoices": "companies({companyId})/purchaseInvoices",
+        "purchaseInvoiceLines": "companies({companyId})/purchaseInvoices({parentId})/purchaseInvoiceLines"
     }
 
     def __init__(self, target) -> None:
@@ -238,6 +241,70 @@ class DynamicsClient:
                     "method": "PATCH"
                 }
             requests.append({"payload": default_dimension, "request_params": request_params})
+
+        return requests
+    
+    @staticmethod
+    def create_dimension_set_lines_requests(record_type: str, company_id: str, entity_id: str, dimensions_set_lines: List[dict], parent_id: Optional[str] = None):
+        """
+        If the Entity already exists we cannot create/update dimension set line for it.
+        We need to send a separate request for it
+        """
+        requests = []
+
+        for dimension_set_line in dimensions_set_lines:
+            endpoint = DynamicsClient.ref_request_endpoints[record_type] + "({entityId})/dimensionSetLines"
+            endpoint = endpoint.format(companyId=company_id, entityId=entity_id, parentId=parent_id)
+            request_params = {
+                "url": endpoint,
+                "method": "POST"
+            }
+
+            if dimension_set_line.pop("existing", False):
+                dimension_id = dimension_set_line.pop("id")
+                request_params = {
+                    "url": f"{endpoint}({dimension_id})",
+                    "method": "PATCH"
+                }
+            requests.append({"payload": dimension_set_line, "request_params": request_params})
+
+        return requests
+    
+    @staticmethod
+    def create_line_items_requests(record_type: str, company_id: str, entity_id: str, item_lines: List[dict]):
+        """
+        If the Entity already exists we cannot create/update dimension set line for it.
+        We need to send a separate request for it
+        """
+        requests = []
+
+        for item_line in item_lines:
+            endpoint = DynamicsClient.ref_request_endpoints[record_type] + "({entityId})/purchaseInvoiceLines"
+            endpoint = endpoint.format(companyId=company_id, entityId=entity_id)
+            request_params = {
+                "url": endpoint,
+                "method": "POST"
+            }
+
+            dimensions_set_lines_requests = []
+            if item_line_id := item_line.pop("id", None):
+                request_params = {
+                    "url": f"{endpoint}({item_line_id})",
+                    "method": "PATCH"
+                }
+
+                if item_line.get("dimensionSetLines"):
+                    dimension_set_lines = item_line.pop("dimensionSetLines")
+                    dimensions_set_lines_requests = DynamicsClient.create_dimension_set_lines_requests(
+                        "purchaseInvoiceLines",
+                        company_id,
+                        item_line_id,
+                        dimension_set_lines,
+                        parent_id=entity_id
+                    )
+            
+            requests.append({"payload": item_line, "request_params": request_params})
+            requests += dimensions_set_lines_requests
 
         return requests
     
