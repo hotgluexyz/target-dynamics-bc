@@ -1,5 +1,5 @@
 import datetime
-from typing import List
+from typing import Dict, List
 
 from target_dynamics_v2.utils import ReferenceData, CompanyNotFound, InvalidDimensionValue, RecordNotFound
 
@@ -11,9 +11,11 @@ class BaseMapper:
             self,
             record,
             sink,
-            reference_data
+            reference_data,
+            mapped_parent_record=None
     ) -> None:
         self.record = record
+        self.mapped_parent_record = mapped_parent_record
         self.sink = sink
         self._map_custom_fields()
         self.reference_data: ReferenceData = reference_data
@@ -220,6 +222,47 @@ class BaseMapper:
                 raise InvalidDimensionValue(f"Dimension could not find a Dimension Value for dimension {dimension['code']} when looking up dimension id={field_id} / code={field_external_id} / displayName={field_name}")
 
         return {"defaultDimensions": default_dimensions} if default_dimensions else {}
+
+    def _get_existing_dimension_set_line(self, record: Dict, dimension_id: str):
+        if not record:
+            return None
+        
+        existing_dimensions = record.get("dimensionSetLines", [])
+        return next(
+            (existing_dimension for existing_dimension in existing_dimensions if existing_dimension["id"] == dimension_id),
+            None
+        )
+
+    def _map_dimension_set_lines(self):
+        dimension_set_lines = []
+        dimension_mapping = self.sink._target.dimensions_mapping.get(self.name, {})
+        for field_name, dimension_code in dimension_mapping.items():
+            dimension = self._get_dimension(dimension_code)
+            field_id = self.record.get(f"{field_name}Id", None)
+            field_external_id = self.record.get(f"{field_name}ExternalId", None)
+            field_name = self.record.get(f"{field_name}Name", None)
+
+            if not field_id and not field_external_id and not field_name:
+                continue
+
+            if dimension_value := self._get_dimension_value(dimension, field_id, field_external_id, field_name):
+                dimension = {
+                    "id": dimension_value["dimensionId"],
+                    "valueId": dimension_value["id"]
+                }
+
+                # if present in the parent record we skip it, the dimension will be inherited from the parent 
+                if self._get_existing_dimension_set_line(self.mapped_parent_record, dimension["id"]):
+                    continue
+
+                if self._get_existing_dimension_set_line(self.existing_record, dimension["id"]):
+                    dimension["existing"] = True
+                dimension_set_lines.append(dimension)  
+            else:
+                raise InvalidDimensionValue(f"Dimension could not find a Dimension Value for dimension {dimension['code']} when looking up dimension id={field_id} / code={field_external_id} / displayName={field_name}")
+
+        return {"dimensionSetLines": dimension_set_lines} if dimension_set_lines else {}
+
 
     def _map_vendor(self):
         vendor_info = {}
