@@ -1,6 +1,6 @@
-from typing import List
+from typing import Dict, List, Optional
 
-from target_dynamics_v2.utils import ReferenceData, CompanyNotFound, InvalidDimensionValue, RecordNotFound
+from target_dynamics_v2.utils import ReferenceData, CompanyNotFound, InvalidDimensionValue, RecordNotFound, DimensionDefinitionNotFound
 
 class BaseMapper:
     """A base class responsible for mapping a record ingested in the unified schema format to a payload for NetSuite"""
@@ -13,7 +13,6 @@ class BaseMapper:
     ) -> None:
         self.record = record
         self.sink = sink
-        self._map_custom_fields()
         self.reference_data: ReferenceData = reference_data
         self.company = self._map_company()
         self.existing_record = self._find_existing_record(self.reference_data.get(self.sink.name, {}))
@@ -166,10 +165,17 @@ class BaseMapper:
             subsidiary_name = self.record.get("subsidiaryName")
             raise CompanyNotFound(f"Could not find Company with subsidiaryId={subsidiary_id} / subsidiaryName={subsidiary_name}")
 
-    def _get_dimension(self, dimension_code: str):
-        return next(
-            (dimension for dimension in self.company["dimensions"] if dimension["code"] == dimension_code),
+    def _get_dimension(self, dimension_id: Optional[str] = None, dimension_code: Optional[str] = None, dimension_display_name: Optional[str] = None):
+        found_dimension = next(
+            (dimension for dimension in self.company["dimensions"]
+                if dimension["id"] == dimension_id or dimension["code"] == dimension_code or dimension["displayName"] == dimension_display_name
+            ),
             None)
+        
+        if not found_dimension:
+            raise DimensionDefinitionNotFound(f"Could not find dimension with id={dimension_id} / code={dimension_code} / displayName={dimension_display_name} for companyId={self.company['id']}")
+        
+        return found_dimension
 
     def _get_dimension_value(self, dimension: dict, value_id: str, value_code: str, value_display_name: str):
         """Find dimension value by looking for dimension id, code or displayName"""
@@ -191,6 +197,9 @@ class BaseMapper:
         ):
             return found_dimension_value
 
+        if not found_dimension_value:
+            raise InvalidDimensionValue(f"Dimension could not find a Dimension Value for dimension {dimension['code']} when looking up dimension value id={value_id} / code={value_code} / displayName={value_display_name}")
+
         return None
 
     def _get_existing_default_dimension(self, dimension_id: str):
@@ -203,11 +212,12 @@ class BaseMapper:
             None
         )
 
-    def _map_default_dimensions_dimensions(self):
+    def _map_default_dimensions_from_root_fields(self):
         default_dimensions = []
-        dimension_mapping = self.sink._target.dimensions_mapping.get(self.sink.name, {})
+
+        dimension_mapping = self.sink._target.dimensions_mapping
         for field_name, dimension_code in dimension_mapping.items():
-            dimension = self._get_dimension(dimension_code)
+            dimension = self._get_dimension(dimension_code=dimension_code)
             field_id = self.record.get(f"{field_name}Id", None)
             field_external_id = self.record.get(f"{field_name}ExternalId", None)
             field_name = self.record.get(f"{field_name}Name", None)
@@ -215,17 +225,53 @@ class BaseMapper:
             if not field_id and not field_external_id and not field_name:
                 continue
 
-            if dimension_value := self._get_dimension_value(dimension, field_id, field_external_id, field_name):
-                default_dimension = {
-                    "dimensionId": dimension_value["dimensionId"],
-                    "dimensionValueId": dimension_value["id"]
-                }
-                if existing_default_dimension := self._get_existing_default_dimension(dimension["id"]):
-                    default_dimension["id"] = existing_default_dimension["id"]
-                default_dimensions.append(default_dimension)  
-            else:
-                raise InvalidDimensionValue(f"Dimension could not find a Dimension Value for dimension {dimension['code']} when looking up dimension id={field_id} / code={field_external_id} / displayName={field_name}")
+            dimension_value = self._get_dimension_value(dimension, field_id, field_external_id, field_name)
+            default_dimension = {
+                "dimensionId": dimension_value["dimensionId"],
+                "dimensionValueId": dimension_value["id"]
+            }
+            if existing_default_dimension := self._get_existing_default_dimension(dimension["id"]):
+                default_dimension["id"] = existing_default_dimension["id"]
+            default_dimensions.append(default_dimension)  
 
+        return default_dimensions
+
+    def _map_default_dimensions_from_dimensions_field(self, existing_dimensions: Optional[List[Dict]]=[]):
+        default_dimensions = []
+
+        for record_dimension in self.record.get("dimensions", []):
+            dimension_id = record_dimension.get("id")
+            dimension_code = record_dimension.get("externalId")
+            dimension_name = record_dimension.get("name")
+
+            dimension_value_id = record_dimension.get("valueId")
+            dimension_value_code = record_dimension.get("valueExternalId")
+            dimension_value_name = record_dimension.get("value")
+
+            # first validate that the dimension exists in Dynamics
+            dimension = self._get_dimension(dimension_id=dimension_id, dimension_code=dimension_code, dimension_display_name=dimension_name)
+
+            if not dimension_value_id and not dimension_value_code and not dimension_value_name:
+                raise InvalidDimensionValue(f"No value was provided for dimension {dimension['code']}")
+
+            dimension_value = self._get_dimension_value(dimension, dimension_value_id, dimension_value_code, dimension_value_name)
+            default_dimension = {
+                "dimensionId": dimension_value["dimensionId"],
+                "dimensionValueId": dimension_value["id"]
+            }
+            if existing_default_dimension := self._get_existing_default_dimension(dimension["id"]):
+                default_dimension["id"] = existing_default_dimension["id"]
+            default_dimensions.append(default_dimension)  
+
+        return default_dimensions
+
+    def _map_default_dimensions_dimensions(self):
+        # we first try to map dimensions that is in the root field of the record, example classExternalId="CLASS01"
+        default_dimensions = self._map_default_dimensions_from_root_fields()
+
+        # then we map dimensions that is in the "dimensions" field of the record, example dimensions = [{ "externaId": "AREA", "valueExternalId": "15" }]
+        default_dimensions += self._map_default_dimensions_from_dimensions_field(existing_dimensions=default_dimensions)
+        
         return {"defaultDimensions": default_dimensions} if default_dimensions else {}
 
 
@@ -237,6 +283,3 @@ class BaseMapper:
                         payload[key] = self.record.get(record_key)
                 else:
                     payload[payload_key] = self.record.get(record_key)
-
-    def _map_custom_fields(self):
-        self.field_mappings = {**self.field_mappings, **self.sink._target.fields_mapping.get(self.sink.name, {})}
