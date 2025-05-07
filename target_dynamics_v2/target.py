@@ -34,7 +34,7 @@ class TargetDynamicsV2(TargetHotglue):
 
         self.dynamics_client = DynamicsClient(self)
         self.reference_data: ReferenceData = self.get_reference_data()
-        self.dimensions_mapping, self.fields_mapping = self.load_fields_and_dimensions_mapping_config()
+        self.dimensions_mapping = self.load_fields_and_dimensions_mapping_config()
 
     def get_reference_data(self) -> ReferenceData:
         self.logger.info(f"Getting reference data...")
@@ -46,38 +46,15 @@ class TargetDynamicsV2(TargetHotglue):
         self.logger.info(f"Done getting reference data...")
         return reference_data
 
-    def parse_field_mapping(self, type: str, field_mappings: dict):
-        filtered_mapping = {}
-
-        for sink, sink_field_map in field_mappings.items():
-            sink_mapping = {field_name: field_config["name"] for field_name, field_config in sink_field_map.items() if field_config.get("type") == type}
-            if sink_mapping:
-                filtered_mapping[sink] = sink_mapping
-
-        return filtered_mapping
-
     def validate_dimensions_mapping(self, dimensions_mapping: dict):
-        # make a set of unique dimension names
-        dimensions_names = set()
-        for dimension_map in dimensions_mapping.values():
-            for dimension_name in dimension_map.values():
-                dimensions_names.add(dimension_name)
-
         # for every company check if the dimension exists
         for company in self.reference_data["companies"]:
             self.logger.info(f"Validating field -> dimension mapping for companyId={company['id']}")
-            for dimension_name in dimensions_names:
+            for dimension_name in dimensions_mapping.values():
                 found_dimension = next((dimension for dimension in company["dimensions"] if dimension["code"] == dimension_name), None)
 
                 if not found_dimension:
                     raise DimensionDefinitionNotFound(f"Could not find dimension={dimension_name} for companyId={company['id']}")
-
-    def validate_fields_mapping(self, fields_mapping: dict):
-        for sink in self.SINK_TYPES:
-            override_fields_name = {field_name for field_name in fields_mapping.get(sink.name, {})}
-            not_overridable_fields = override_fields_name - set(sink.allowed_fields_override)
-            if not_overridable_fields:
-                raise InvalidCustomFieldDefinition(f"Non-overridable fields provided in config for sink={sink.name}, fields={not_overridable_fields}")
 
     def get_tenant_config(self):
         snapshot_directory = self.config.get("snapshot_dir", None)
@@ -90,10 +67,13 @@ class TargetDynamicsV2(TargetHotglue):
             with open(config_path) as f:
                 tenant_config = json.load(f)
         else:
-            tenant_config = {
-                "dynamics_bc_field_mapping": {
-                    "field_mappings": {
-                    }
+            tenant_config = {}
+
+        if "dynamics-bc" not in tenant_config:
+            tenant_config["dynamics-bc"] = {
+                "dimension_mappings": {
+                    "class": "CLASS",
+                    "department": "DEPARTMENT"
                 }
             }
 
@@ -101,21 +81,15 @@ class TargetDynamicsV2(TargetHotglue):
 
     def load_fields_and_dimensions_mapping_config(self):
         tenant_config = self.get_tenant_config()
-        config = tenant_config.get("dynamics-bc")
+        dynamics_config = tenant_config.get("dynamics-bc")
 
-        if config == None:
-            raise InvalidConfigurationError("dynamics_bc_field_mapping is not provided in the tenant-config.json")
+        if dynamics_config == None:
+            raise InvalidConfigurationError("dynamics-bc is not provided in the tenant-config.json")
 
-        dimensions_mapping = {}
-        fields_mapping = {}
-        if mappings := config.get("field_mappings"):
-            dimensions_mapping = self.parse_field_mapping("dimension", mappings)
-            fields_mapping = self.parse_field_mapping("field", mappings)
+        dimensions_mapping = dynamics_config.get("dimension_mappings", {})
+        self.validate_dimensions_mapping(dimensions_mapping)
 
-            self.validate_dimensions_mapping(dimensions_mapping)
-            self.validate_fields_mapping(fields_mapping)
-
-        return dimensions_mapping, fields_mapping
+        return dimensions_mapping
 
     config_jsonschema = th.PropertiesList(
         th.Property(
