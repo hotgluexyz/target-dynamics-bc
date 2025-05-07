@@ -254,6 +254,39 @@ class BaseMapper:
             }
 
         return vendor_info
+    def _map_location(self):
+        location_info = {}
+
+        found_location = None
+        locations_reference_data = self.company["locations"]
+
+        if location_id := self.record.get("locationId"):
+            found_location = next(
+                (location for location in locations_reference_data
+                if location["id"] == location_id),
+                None
+            )
+
+        if (location_external_id := self.record.get("locationExternalId")) and not found_location:
+            found_location = next(
+                (location for location in locations_reference_data
+                if location["code"] == location_external_id),
+                None
+            )
+
+        if (location_name := self.record.get("locationName")) and not found_location:
+            found_location = next(
+                (location for location in locations_reference_data
+                if location["displayName"] == location_name),
+                None
+            )
+
+        if found_location:
+            location_info = {
+                "locationId": found_location["id"]
+            }
+
+        return location_info
 
     def _map_fields(self, payload):
         for record_key, payload_key in self.field_mappings.items():
