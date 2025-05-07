@@ -44,6 +44,7 @@ class BillSink(DynamicsBaseBatchSink):
             items_set.update((line_item.get("itemId"), line_item.get("itemExternalId"), line_item.get("itemName"), record.get("subsidiaryId"), record.get("subsidiaryName")) for line_item in record.get("lineItems", []))
         # make a list of unique items
         items = [{"itemId": item[0], "itemExternalId": item[1], "itemName": item[2], "subsidiaryId": item[3], "subsidiaryName": item[4]} for item in items_set]
+        sorted_items = sorted(items, key=lambda item: (item.get("itemId"), item.get("itemExternalId"), item.get("itemName"), item.get("subsidiaryId"), item.get("subsidiaryName")))
         item_filter_mappings = [
             {"field_from": "itemId", "field_to": "id", "should_quote": False},
             {"field_from": "itemExternalId", "field_to": "number", "should_quote": True},
@@ -52,7 +53,7 @@ class BillSink(DynamicsBaseBatchSink):
         existing_company_items = self.dynamics_client.get_existing_entities_for_records(
             self._target.reference_data.get("companies", []),
             "Items",
-            items,
+            sorted_items,
             item_filter_mappings
         ) if items else []
 
