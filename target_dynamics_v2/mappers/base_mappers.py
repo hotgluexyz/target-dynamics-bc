@@ -279,11 +279,11 @@ class BaseMapper:
             None
         )
 
-    def _map_dimension_set_lines(self):
+    def _map_dimension_set_lines_from_root_fields(self):
         dimension_set_lines = []
-        dimension_mapping = self.sink._target.dimensions_mapping.get(self.name, {})
+        dimension_mapping = self.sink._target.dimensions_mapping
         for field_name, dimension_code in dimension_mapping.items():
-            dimension = self._get_dimension(dimension_code)
+            dimension = self._get_dimension(dimension_code=dimension_code)
             field_id = self.record.get(f"{field_name}Id", None)
             field_external_id = self.record.get(f"{field_name}ExternalId", None)
             field_name = self.record.get(f"{field_name}Name", None)
@@ -291,21 +291,62 @@ class BaseMapper:
             if not field_id and not field_external_id and not field_name:
                 continue
 
-            if dimension_value := self._get_dimension_value(dimension, field_id, field_external_id, field_name):
-                dimension = {
-                    "id": dimension_value["dimensionId"],
-                    "valueId": dimension_value["id"]
-                }
+            dimension_value = self._get_dimension_value(dimension, field_id, field_external_id, field_name)
+            dimension = {
+                "id": dimension_value["dimensionId"],
+                "valueId": dimension_value["id"]
+            }
 
-                # if present in the parent record we skip it, the dimension will be inherited from the parent 
-                if self._get_existing_dimension_set_line(self.mapped_parent_record, dimension["id"]):
-                    continue
+            # if present in the parent record we skip it, the dimension will be inherited from the parent 
+            if self._get_existing_dimension_set_line(self.mapped_parent_record, dimension["id"]):
+                continue
 
-                if self._get_existing_dimension_set_line(self.existing_record, dimension["id"]):
-                    dimension["existing"] = True
-                dimension_set_lines.append(dimension)  
-            else:
-                raise InvalidDimensionValue(f"Dimension could not find a Dimension Value for dimension {dimension['code']} when looking up dimension id={field_id} / code={field_external_id} / displayName={field_name}")
+            if self._get_existing_dimension_set_line(self.existing_record, dimension["id"]):
+                dimension["existing"] = True
+            dimension_set_lines.append(dimension)  
+
+        return dimension_set_lines
+
+    def _map_dimension_set_lines_from_dimensions_field(self, existing_dimensions: Optional[List[Dict]]=[]):
+        dimensions = []
+
+        for record_dimension in self.record.get("dimensions", []):
+            dimension_id = record_dimension.get("id")
+            dimension_code = record_dimension.get("externalId")
+            dimension_name = record_dimension.get("name")
+
+            dimension_value_id = record_dimension.get("valueId")
+            dimension_value_code = record_dimension.get("valueExternalId")
+            dimension_value_name = record_dimension.get("value")
+
+            # first validate that the dimension exists in Dynamics
+            dimension = self._get_dimension(dimension_id=dimension_id, dimension_code=dimension_code, dimension_display_name=dimension_name)
+
+            if not dimension_value_id and not dimension_value_code and not dimension_value_name:
+                raise InvalidDimensionValue(f"No value was provided for dimension {dimension['code']}")
+
+            dimension_value = self._get_dimension_value(dimension, dimension_value_id, dimension_value_code, dimension_value_name)
+            dimension_set_line = {
+                "id": dimension_value["dimensionId"],
+                "valueId": dimension_value["id"]
+            }
+            
+            # if present in the parent record we skip it, the dimension will be inherited from the parent 
+            if self._get_existing_dimension_set_line(self.mapped_parent_record, dimension["id"]):
+                continue
+
+            if self._get_existing_dimension_set_line(self.existing_record, dimension["id"]):
+                dimension_set_line["existing"] = True
+            dimensions.append(dimension_set_line)  
+
+        return dimensions
+
+    def _map_dimension_set_lines(self):
+        # we first try to map dimensions that is in the root field of the record, example classExternalId="CLASS01"
+        dimension_set_lines = self._map_dimension_set_lines_from_root_fields()
+
+        # then we map dimensions that is in the "dimensions" field of the record, example dimensions = [{ "externaId": "AREA", "valueExternalId": "15" }]
+        dimension_set_lines += self._map_dimension_set_lines_from_dimensions_field(existing_dimensions=dimension_set_lines)
 
         return {"dimensionSetLines": dimension_set_lines} if dimension_set_lines else {}
 
