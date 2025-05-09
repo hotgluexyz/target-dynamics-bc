@@ -1,17 +1,21 @@
+import datetime
 from typing import Dict, List, Optional
 
 from target_dynamics_v2.utils import ReferenceData, CompanyNotFound, InvalidDimensionValue, RecordNotFound, DimensionDefinitionNotFound
 
 class BaseMapper:
     """A base class responsible for mapping a record ingested in the unified schema format to a payload for NetSuite"""
-    
+    existing_record_pk_mappings = []
+
     def __init__(
             self,
             record,
             sink,
-            reference_data
+            reference_data,
+            mapped_parent_record=None
     ) -> None:
         self.record = record
+        self.mapped_parent_record = mapped_parent_record
         self.sink = sink
         self.reference_data: ReferenceData = reference_data
         self.company = self._map_company()
@@ -45,27 +49,18 @@ class BaseMapper:
         
         existing_entities_in_dynamics = reference_list.get(self.company["id"], [])
 
-        if record_id := self.record.get("id"):
-            # Try matching internal ID first
-            found_record = next(
-                (record for record in existing_entities_in_dynamics
-                if record["id"] == record_id),
-                None
-            )
-            if found_record is None:
-                raise RecordNotFound(f"Record ID={record_id} not found Dynamics. Skipping it")
-            
-            return found_record
-            
-        if record_external_id := self.record.get("externalId"):
-            # Try matching externalId
-            found_record = next(
-                (record for record in existing_entities_in_dynamics
-                if record.get("number") == record_external_id),
-                None
-            )
-            if found_record:
-                return found_record
+        for existing_record_pk_mapping in self.existing_record_pk_mappings:
+            if record_id := self.record.get(existing_record_pk_mapping["record_field"]):
+                found_record = next(
+                    (dynamics_record for dynamics_record in existing_entities_in_dynamics
+                    if dynamics_record[existing_record_pk_mapping["dynamics_field"]] == record_id),
+                    None
+                )
+                if existing_record_pk_mapping["required_if_present"] and found_record is None:
+                    raise RecordNotFound(f"Record {existing_record_pk_mapping['record_field']}={record_id} not found Dynamics. Skipping it")
+                
+                if found_record:
+                    return found_record
         
         return None
 
@@ -274,6 +269,189 @@ class BaseMapper:
         
         return {"defaultDimensions": default_dimensions} if default_dimensions else {}
 
+    def _get_existing_dimension_set_line(self, record: Dict, dimension_id: str):
+        if not record:
+            return None
+        
+        existing_dimensions = record.get("dimensionSetLines", [])
+        return next(
+            (existing_dimension for existing_dimension in existing_dimensions if existing_dimension["id"] == dimension_id),
+            None
+        )
+
+    def _map_dimension_set_lines_from_root_fields(self):
+        dimension_set_lines = []
+        dimension_mapping = self.sink._target.dimensions_mapping
+        for field_name, dimension_code in dimension_mapping.items():
+            dimension = self._get_dimension(dimension_code=dimension_code)
+            field_id = self.record.get(f"{field_name}Id", None)
+            field_external_id = self.record.get(f"{field_name}ExternalId", None)
+            field_name = self.record.get(f"{field_name}Name", None)
+
+            if not field_id and not field_external_id and not field_name:
+                continue
+
+            dimension_value = self._get_dimension_value(dimension, field_id, field_external_id, field_name)
+            dimension = {
+                "id": dimension_value["dimensionId"],
+                "valueId": dimension_value["id"]
+            }
+
+            # if present in the parent record we skip it, the dimension will be inherited from the parent 
+            if self._get_existing_dimension_set_line(self.mapped_parent_record, dimension["id"]):
+                continue
+
+            if self._get_existing_dimension_set_line(self.existing_record, dimension["id"]):
+                dimension["existing"] = True
+            dimension_set_lines.append(dimension)  
+
+        return dimension_set_lines
+
+    def _map_dimension_set_lines_from_dimensions_field(self, existing_dimensions: Optional[List[Dict]]=[]):
+        dimensions = []
+
+        for record_dimension in self.record.get("dimensions", []):
+            dimension_id = record_dimension.get("id")
+            dimension_code = record_dimension.get("externalId")
+            dimension_name = record_dimension.get("name")
+
+            dimension_value_id = record_dimension.get("valueId")
+            dimension_value_code = record_dimension.get("valueExternalId")
+            dimension_value_name = record_dimension.get("value")
+
+            # first validate that the dimension exists in Dynamics
+            dimension = self._get_dimension(dimension_id=dimension_id, dimension_code=dimension_code, dimension_display_name=dimension_name)
+
+            if not dimension_value_id and not dimension_value_code and not dimension_value_name:
+                raise InvalidDimensionValue(f"No value was provided for dimension {dimension['code']}")
+
+            dimension_value = self._get_dimension_value(dimension, dimension_value_id, dimension_value_code, dimension_value_name)
+            dimension_set_line = {
+                "id": dimension_value["dimensionId"],
+                "valueId": dimension_value["id"]
+            }
+            
+            # if present in the parent record we skip it, the dimension will be inherited from the parent 
+            if self._get_existing_dimension_set_line(self.mapped_parent_record, dimension["id"]):
+                continue
+
+            if self._get_existing_dimension_set_line(self.existing_record, dimension["id"]):
+                dimension_set_line["existing"] = True
+            dimensions.append(dimension_set_line)  
+
+        return dimensions
+
+    def _map_dimension_set_lines(self):
+        # we first try to map dimensions that is in the root field of the record, example classExternalId="CLASS01"
+        dimension_set_lines = self._map_dimension_set_lines_from_root_fields()
+
+        # then we map dimensions that is in the "dimensions" field of the record, example dimensions = [{ "externaId": "AREA", "valueExternalId": "15" }]
+        dimension_set_lines += self._map_dimension_set_lines_from_dimensions_field(existing_dimensions=dimension_set_lines)
+
+        return {"dimensionSetLines": dimension_set_lines} if dimension_set_lines else {}
+
+
+    def _map_vendor(self):
+        vendor_info = {}
+
+        found_vendor = None
+        vendors_reference_data = self.reference_data.get("Vendors", {}).get(self.company["id"], [])
+
+        if vendor_id := self.record.get("vendorId"):
+            found_vendor = next(
+                (vendor for vendor in vendors_reference_data
+                if vendor["id"] == vendor_id),
+                None
+            )
+
+        if (vendor_number := self.record.get("vendorExternalId")) and not found_vendor:
+            found_vendor = next(
+                (vendor for vendor in vendors_reference_data
+                if vendor["number"] == vendor_number),
+                None
+            )
+
+        if (vendor_name := self.record.get("vendorName")) and not found_vendor:
+            found_vendor = next(
+                (vendor for vendor in vendors_reference_data
+                if vendor["displayName"] == vendor_name),
+                None
+            )
+
+        if found_vendor:
+            vendor_info = {
+                "vendorId": found_vendor["id"]
+            }
+
+        return vendor_info
+    
+    def _map_account(self):
+        account_info = {}
+
+        found_account = None
+        accounts_reference_data = self.company["accounts"]
+
+        if account_id := self.record.get("accountId"):
+            found_account = next(
+                (account for account in accounts_reference_data
+                if account["id"] == account_id),
+                None
+            )
+
+        if (account_number := self.record.get("accountNumber")) and not found_account:
+            found_account = next(
+                (account for account in accounts_reference_data
+                if account["number"] == account_number),
+                None
+            )
+
+        if (account_name := self.record.get("accountName")) and not found_account:
+            found_account = next(
+                (account for account in accounts_reference_data
+                if account["displayName"] == account_name),
+                None
+            )
+
+        if found_account:
+            account_info = {
+                "accountId": found_account["id"]
+            }
+
+        return account_info
+    
+    def _map_location(self):
+        location_info = {}
+
+        found_location = None
+        locations_reference_data = self.company["locations"]
+
+        if location_id := self.record.get("locationId"):
+            found_location = next(
+                (location for location in locations_reference_data
+                if location["id"] == location_id),
+                None
+            )
+
+        if (location_external_id := self.record.get("locationExternalId")) and not found_location:
+            found_location = next(
+                (location for location in locations_reference_data
+                if location["code"] == location_external_id),
+                None
+            )
+
+        if (location_name := self.record.get("locationName")) and not found_location:
+            found_location = next(
+                (location for location in locations_reference_data
+                if location["displayName"] == location_name),
+                None
+            )
+
+        if found_location:
+            location_info = {
+                "locationId": found_location["id"]
+            }
+
+        return location_info
 
     def _map_fields(self, payload):
         for record_key, payload_key in self.field_mappings.items():
@@ -282,4 +460,9 @@ class BaseMapper:
                     for key in payload_key:
                         payload[key] = self.record.get(record_key)
                 else:
-                    payload[payload_key] = self.record.get(record_key)
+                    record_value = self.record.get(record_key)
+                    if isinstance(record_value, datetime.datetime):
+                        record_value = record_value.isoformat()
+                        payload[payload_key] = record_value[:10] if payload_key.endswith("Date") else record_value
+                    else:
+                        payload[payload_key] = record_value

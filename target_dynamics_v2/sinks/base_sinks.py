@@ -117,7 +117,7 @@ class DynamicsBaseBatchSink(HotglueBaseSink, BatchSink):
 
             if response["status"] >= 400:
                 state["success"] = False
-                state["record"] = record["records"]
+                state["record"] = json.dumps(record["records"], cls=HGJSONEncoder)
                 state["error"] = response.get("body", {}).get("error")
             state_updates.append(state)
 
@@ -146,7 +146,7 @@ class DynamicsBaseBatchSink(HotglueBaseSink, BatchSink):
 
         if last_response["status"] >= 400:
             state["success"] = False
-            state["record"] = record["records"]
+            state["record"] = json.dumps(record["records"], cls=HGJSONEncoder)
             state["error"] = last_response.get("body", {}).get("error")
             return state
 
@@ -185,7 +185,7 @@ class DynamicsBaseBatchSink(HotglueBaseSink, BatchSink):
                 record = self.process_batch_record(raw_record)
                 records.append(record)
             except Exception as e:
-                state = {"error": str(e), "record": raw_record}
+                state = {"error": str(e), "record": json.dumps(raw_record, cls=HGJSONEncoder)}
                 if id := raw_record.get("id"):
                     state["id"] = id
                 self.update_state(state)

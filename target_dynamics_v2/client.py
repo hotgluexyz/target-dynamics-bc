@@ -14,11 +14,16 @@ LOGGER = singer.get_logger()
 class DynamicsClient:
     ref_request_endpoints = {
         "Companies": "companies",
+        "Accounts": "companies({companyId})/accounts",
+        "Locations": "companies({companyId})/locations",
+        "Items": "companies({companyId})/items",
         "Currencies": "companies({companyId})/currencies",
         "PaymentMethods": "companies({companyId})/paymentMethods",
         "Customers": "companies({companyId})/customers",
         "Vendors": "companies({companyId})/vendors",
-        "Dimensions": "companies({companyId})/dimensions"
+        "Dimensions": "companies({companyId})/dimensions",
+        "purchaseInvoices": "companies({companyId})/purchaseInvoices",
+        "purchaseInvoiceLines": "companies({companyId})/purchaseInvoices({parentId})/purchaseInvoiceLines"
     }
 
     def __init__(self, target) -> None:
@@ -104,7 +109,7 @@ class DynamicsClient:
         responses = response.json().get("responses", [])
         return responses
 
-    def get_entities(self, record_type: str, url_params: Optional[dict] = {}, ids: Optional[list] = [], external_ids: Optional[list] = [], expand: str = None):
+    def get_entities(self, record_type: str, url_params: Optional[dict] = {}, filters: Optional[Dict[str, List]] = {}, expand: str = None):
         """"Uses batch request to get data because the url can be of any length, allowing for long filters"""
         endpoint = self.ref_request_endpoints[record_type].format(**url_params)
         entity_filters = []
@@ -112,11 +117,9 @@ class DynamicsClient:
         if expand:
                 expand = f"$expand={expand}"
         
-        if ids:
-            entity_filters.append([f"id eq {id}" for id in ids])
-
-        if external_ids:
-            entity_filters.append([f"number eq '{external_id}'" for external_id in external_ids])
+        for filter_field_name, filter_values in filters.items():
+            if filter_values:
+                entity_filters.append([f"{filter_field_name} eq {filter_value}" for filter_value in filter_values])
 
         if not entity_filters:
             entity_filters = [[]]
@@ -165,9 +168,15 @@ class DynamicsClient:
             _, _, dimensions = self.get_entities("Dimensions", url_params, expand="dimensionValues")
             company["dimensions"] = dimensions
 
+            _, _, accounts = self.get_entities("Accounts", url_params)
+            company["accounts"] = accounts
+
+            _, _, locations = self.get_entities("Locations", url_params)
+            company["locations"] = locations
+
         return True, None, companies
     
-    def get_existing_entities_for_records(self, companies_reference_data: List[Dict], record_type: str, records: List[Dict]) -> List[Dict]:
+    def get_existing_entities_for_records(self, companies_reference_data: List[Dict], record_type: str, records: List[Dict], filter_mappings: List[Dict], expand: Optional[str] = None) -> Dict[str, List]:
         """Maps records to companies and returns a list of entities based on 'records'"""
         
         # we need to map the company to query the existing customers
@@ -179,13 +188,20 @@ class DynamicsClient:
                 continue
 
             if company["id"] not in company_entities_mapping.keys():
-                company_entities_mapping[company["id"]] = {"ids": [], "external_ids": []}
+                company_entities_mapping[company["id"]] = {}
             
-            if rec_id := record.get("id"):
-                company_entities_mapping[company["id"]]["ids"].append(rec_id)
+            for filter_mapping in filter_mappings:
+                filter_field_from = filter_mapping["field_from"]
+                filter_field_to = filter_mapping["field_to"]
+                filter_field_should_quote = filter_mapping["should_quote"]
 
-            if rec_external_id := record.get("externalId"):
-                company_entities_mapping[company["id"]]["external_ids"].append(rec_external_id)
+                if filter_field_to not in company_entities_mapping[company["id"]]:
+                    company_entities_mapping[company["id"]][filter_field_to] = []
+
+                if rec_value := record.get(filter_field_from):
+                    if filter_field_should_quote:
+                        rec_value = f"'{rec_value}'"
+                    company_entities_mapping[company["id"]][filter_field_to].append(rec_value)
 
         existing_company_entities = {}
         # make requests to get existing entities for each company from Dynamics
@@ -194,9 +210,8 @@ class DynamicsClient:
             _, _, entities = self.get_entities(
                 record_type,
                 url_params=url_params,
-                ids=company_entities_mapping[company_id]["ids"],
-                external_ids=company_entities_mapping[company_id]["external_ids"],
-                expand="defaultDimensions"
+                filters=company_entities_mapping[company_id],
+                expand=expand
             )
             if company_id not in existing_company_entities.keys():
                 existing_company_entities[company_id] = []
@@ -226,6 +241,70 @@ class DynamicsClient:
                     "method": "PATCH"
                 }
             requests.append({"payload": default_dimension, "request_params": request_params})
+
+        return requests
+    
+    @staticmethod
+    def create_dimension_set_lines_requests(record_type: str, company_id: str, entity_id: str, dimensions_set_lines: List[dict], parent_id: Optional[str] = None):
+        """
+        If the Entity already exists we cannot create/update dimension set line for it.
+        We need to send a separate request for it
+        """
+        requests = []
+
+        for dimension_set_line in dimensions_set_lines:
+            endpoint = DynamicsClient.ref_request_endpoints[record_type] + "({entityId})/dimensionSetLines"
+            endpoint = endpoint.format(companyId=company_id, entityId=entity_id, parentId=parent_id)
+            request_params = {
+                "url": endpoint,
+                "method": "POST"
+            }
+
+            if dimension_set_line.pop("existing", False):
+                dimension_id = dimension_set_line.pop("id")
+                request_params = {
+                    "url": f"{endpoint}({dimension_id})",
+                    "method": "PATCH"
+                }
+            requests.append({"payload": dimension_set_line, "request_params": request_params})
+
+        return requests
+    
+    @staticmethod
+    def create_line_items_requests(record_type: str, company_id: str, entity_id: str, item_lines: List[dict]):
+        """
+        If the Entity already exists we cannot create/update dimension set line for it.
+        We need to send a separate request for it
+        """
+        requests = []
+
+        for item_line in item_lines:
+            endpoint = DynamicsClient.ref_request_endpoints[record_type] + "({entityId})/purchaseInvoiceLines"
+            endpoint = endpoint.format(companyId=company_id, entityId=entity_id)
+            request_params = {
+                "url": endpoint,
+                "method": "POST"
+            }
+
+            dimensions_set_lines_requests = []
+            if item_line_id := item_line.pop("id", None):
+                request_params = {
+                    "url": f"{endpoint}({item_line_id})",
+                    "method": "PATCH"
+                }
+
+                if item_line.get("dimensionSetLines"):
+                    dimension_set_lines = item_line.pop("dimensionSetLines")
+                    dimensions_set_lines_requests = DynamicsClient.create_dimension_set_lines_requests(
+                        "purchaseInvoiceLines",
+                        company_id,
+                        item_line_id,
+                        dimension_set_lines,
+                        parent_id=entity_id
+                    )
+            
+            requests.append({"payload": item_line, "request_params": request_params})
+            requests += dimensions_set_lines_requests
 
         return requests
     

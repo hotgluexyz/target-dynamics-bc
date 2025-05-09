@@ -6,15 +6,24 @@ from target_dynamics_v2.sinks.base_sinks import DynamicsBaseBatchSink
 
 class CustomerSink(DynamicsBaseBatchSink):
     name = "Customers"
+    record_type = "Customers"
+
     # fields in the tenant-config of type=field that are allowed to be overwritten
     allowed_fields_override = ["parentId"]
 
     def preprocess_batch(self, records: List[dict]):
         # fetch reference data related to existing customers
+        filter_mappings = [
+            {"field_from": "id", "field_to": "id", "should_quote": False},
+            {"field_from": "externalId", "field_to": "number", "should_quote": True}
+        ]
+
         existing_company_customers = self.dynamics_client.get_existing_entities_for_records(
             self._target.reference_data.get("companies", []),
-            self.name,
-            records
+            self.record_type,
+            records,
+            filter_mappings,
+            expand="defaultDimensions"
         )
 
         self.reference_data = {**self._target.reference_data, self.name: existing_company_customers}
@@ -24,13 +33,13 @@ class CustomerSink(DynamicsBaseBatchSink):
         mapped_record = CustomerSchemaMapper(record, self, self.reference_data)
         payload = mapped_record.to_dynamics()
 
-        request_params = DynamicsClient.get_entity_upsert_request_params(self.name, mapped_record.company["id"], payload.get("id"))
+        request_params = DynamicsClient.get_entity_upsert_request_params(self.record_type, mapped_record.company["id"], payload.get("id"))
 
         default_dimensions_requests = []
         if mapped_record.existing_record and payload.get("defaultDimensions"):
             default_dimensions = payload.pop("defaultDimensions")
             default_dimensions_requests = DynamicsClient.create_default_dimensions_requests(
-                self.name,
+                self.record_type,
                 mapped_record.company["id"],
                 payload["id"],
                 default_dimensions

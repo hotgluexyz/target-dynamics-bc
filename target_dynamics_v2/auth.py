@@ -35,7 +35,6 @@ class DynamicsAuth(requests.auth.AuthBase):
 
             self.__access_token = data["access_token"]
             self.__config["refresh_token"] = data["refresh_token"]
-            self.__config["expires_in"] = data["expires_in"]
             self.__config["access_token"] = data["access_token"]
 
             with open(self.__config_path, "w") as outfile:
