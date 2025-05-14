@@ -385,7 +385,7 @@ class BaseMapper:
 
         return vendor_info
     
-    def _map_account(self):
+    def _map_account(self, required: bool=False):
         account_info = {}
 
         found_account = None
@@ -416,6 +416,9 @@ class BaseMapper:
             account_info = {
                 "accountId": found_account["id"]
             }
+
+        if required and not found_account:
+            raise RecordNotFound(f"Account not found for accountId={account_id} / accountNumber={account_number} / accountName={account_name}")
 
         return account_info
     
