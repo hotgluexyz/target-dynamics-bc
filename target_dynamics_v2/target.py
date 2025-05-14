@@ -9,15 +9,17 @@ from target_hotglue.target import TargetHotglue
 from target_dynamics_v2.client import DynamicsClient
 from target_dynamics_v2.sinks.bill_sink import BillSink
 from target_dynamics_v2.sinks.customer_sink import CustomerSink
+from target_dynamics_v2.sinks.journal_entry_sink import JournalEntrySink
 from target_dynamics_v2.sinks.vendor_sink import VendorSink
-from target_dynamics_v2.utils import ReferenceData, DimensionDefinitionNotFound, InvalidCustomFieldDefinition, InvalidConfigurationError
+from target_dynamics_v2.utils import ReferenceData, DimensionDefinitionNotFound, InvalidConfigurationError
 
 class TargetDynamicsV2(TargetHotglue):
     """Sample target for DynamicsV2."""
     SINK_TYPES = [
         CustomerSink,
         VendorSink,
-        BillSink
+        BillSink,
+        JournalEntrySink
     ]
     name = "target-dynamics-v2"
     def __init__(
