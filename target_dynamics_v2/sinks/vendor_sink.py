@@ -2,9 +2,9 @@ from typing import List
 
 from target_dynamics_v2.client import DynamicsClient
 from target_dynamics_v2.mappers.vendor_schema_mapper import VendorSchemaMapper
-from target_dynamics_v2.sinks.base_sinks import DynamicsBaseBatchSink
+from target_dynamics_v2.sinks.base_sinks import DynamicsBaseBatchSinkBatchUpsert
 
-class VendorSink(DynamicsBaseBatchSink):
+class VendorSink(DynamicsBaseBatchSinkBatchUpsert):
     name = "Vendors"
     record_type = "Vendors"
 

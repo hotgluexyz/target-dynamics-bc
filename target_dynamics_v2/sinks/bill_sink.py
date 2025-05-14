@@ -2,9 +2,9 @@ from typing import List
 
 from target_dynamics_v2.client import DynamicsClient
 from target_dynamics_v2.mappers.bill_schema_mapper import BillSchemaMapper
-from target_dynamics_v2.sinks.base_sinks import DynamicsBaseBatchSink
+from target_dynamics_v2.sinks.base_sinks import DynamicsBaseBatchSinkBatchUpsert
 
-class BillSink(DynamicsBaseBatchSink):
+class BillSink(DynamicsBaseBatchSinkBatchUpsert):
     name = "Bills"
     record_type = "purchaseInvoices"
 

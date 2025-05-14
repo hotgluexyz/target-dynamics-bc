@@ -1,3 +1,4 @@
+import abc
 import hashlib
 import json
 from typing import Dict, List, Optional
@@ -22,11 +23,29 @@ class DynamicsBaseBatchSink(HotglueBaseSink, BatchSink):
         super().__init__(target, stream_name, schema, key_properties)
         self.dynamics_client: DynamicsClient = self._target.dynamics_client
 
+    @abc.abstractmethod
+    def preprocess_batch(self, records: List[dict]):
+        """
+        Can be used to gather any additional data before processing the batch
+        such as making a bulk request to get all existing records based on the
+        given "records".
+        """
+        pass
+
+    @abc.abstractmethod
     def process_batch_record(self, record: dict, index: int) -> dict:
+        """
+        Process the record. Do the raw record mapping to what will be used to perform
+        the requests against the API
+        """
         return record
 
     def build_record_hash(self, record: dict):
         return hashlib.sha256(json.dumps(record, cls=HGJSONEncoder).encode()).hexdigest()
+
+    def hash_records(self, records: List[dict]):
+        for record in records:
+            record["hash"] = self.build_record_hash(record)
 
     def get_existing_state(self, hash: str):
         states = self.latest_state["bookmarks"][self.name]
@@ -37,7 +56,7 @@ class DynamicsBaseBatchSink(HotglueBaseSink, BatchSink):
             self.latest_state["summary"][self.name]["existing"] += 1
 
         return existing_state
-
+    
     def check_for_duplicated_records(self, records: List[dict]):
         filtered_records = []
 
@@ -62,6 +81,13 @@ class DynamicsBaseBatchSink(HotglueBaseSink, BatchSink):
                 self.logger.info(f"Duplicated record. Won't process it. Record: {record}")
 
         return unique_records
+
+
+class DynamicsBaseBatchSinkBatchUpsert(DynamicsBaseBatchSink):
+    """
+    Sink that batch records for pre-processing and also make the
+    upsert requests to Dynamics in batches
+    """
 
     def make_batch_request(self, records: List[dict], transaction_type: str = "non_atomic"):
         if not records:
@@ -156,18 +182,6 @@ class DynamicsBaseBatchSink(HotglueBaseSink, BatchSink):
 
         return state
     
-    def preprocess_batch(self, records: List[dict]):
-        """
-        Can be used to gather any additional data before processing the batch
-        such as making a bulk request to get all existing records based on the
-        given "records".
-        """
-        pass
-
-    def hash_records(self, records: List[dict]):
-        for record in records:
-            record["hash"] = self.build_record_hash(record)
-
     def process_batch(self, context: dict) -> None:
         if not self.latest_state:
             self.init_state()
@@ -213,3 +227,64 @@ class DynamicsBaseBatchSink(HotglueBaseSink, BatchSink):
             atomic_responses = self.make_batch_request([atomic_record], transaction_type="atomic")
             state = self.handle_atomic_batch_response(atomic_responses, atomic_record)
             self.update_state(state)
+
+
+class DynamicsBaseBatchSinkSingleUpsert(DynamicsBaseBatchSink):
+    """
+    Sink that batch records for pre-processing but makes the
+    upsert requests to Dynamics one at a time. This is used
+    for sinks that need more complex logic to upsert records
+    in Dynamics.
+    For example when creating the record and the
+    child records needs the parent ID that has just been created
+    """
+
+    @abc.abstractmethod
+    def upsert_record(self, record: Dict) -> tuple[str, bool, Dict]:
+        """
+        Performs the upserting of the record in Dynamics
+        """
+        pass
+
+    def process_batch(self, context: dict) -> None:
+        if not self.latest_state:
+            self.init_state()
+
+        raw_records = context["records"]
+
+        self.preprocess_batch(raw_records)
+
+        records = []
+        for raw_record in raw_records:
+            try:
+                # performs record mapping from unified to Dynamics
+                record = self.process_batch_record(raw_record)
+                records.append(record)
+            except Exception as e:
+                state = {"error": str(e), "record": json.dumps(raw_record, cls=HGJSONEncoder)}
+                if id := raw_record.get("id"):
+                    state["id"] = id
+                self.update_state(state)
+
+        self.hash_records(records)
+        records = self.check_for_duplicated_records(records)
+
+        for record in records:
+            try:
+                id, success, state = self.upsert_record(record)
+            except  Exception as e:
+                state = {"error": str(e), "record": json.dumps(record, cls=HGJSONEncoder)}
+                if id := record.get("id"):
+                    state["id"] = id
+                self.update_state(state)
+            else:
+                if success:
+                    self.logger.info(f"{self.name} processed id: {id}")
+
+                state["success"] = success
+                state["hash"] = record.get("hash")
+
+                if id:
+                    state["id"] = id
+
+                self.update_state(state)
