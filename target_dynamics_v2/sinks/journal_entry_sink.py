@@ -76,7 +76,7 @@ class JournalEntrySink(DynamicsBaseBatchSinkSingleUpsert):
             }
         ]
 
-        post_delete_response = self.dynamics_client.make_batch_request(post_delete_request_data)
+        post_delete_response = self.dynamics_client.make_batch_request(post_delete_request_data, transaction_type="atomic")
         
         post_response = post_delete_response[0]
         if post_response.get("status") != 204:
