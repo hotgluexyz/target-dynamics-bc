@@ -10,8 +10,6 @@ from target_hotglue.common import HGJSONEncoder
 from target_dynamics_v2.client import DynamicsClient
 
 class DynamicsBaseBatchSink(HotglueBaseSink, BatchSink):
-    # fields in the tenant-config of type=field that are allowed to be overwritten
-    allowed_fields_override = []
     max_size = 1000 # max allowed by dynamics is 1000
 
     def __init__(
