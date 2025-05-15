@@ -32,7 +32,7 @@ class BillSchemaMapper(BaseMapper):
 
         self._map_bill_line_items(payload)
 
-        return payload
+        return {"payload": payload, "company_id": self.company["id"]}
 
     def _map_bill_line_items(self, payload):
         mapped_line_items = []

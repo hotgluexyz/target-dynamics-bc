@@ -23,6 +23,8 @@ class DynamicsClient:
         "Vendors": "companies({companyId})/vendors",
         "Dimensions": "companies({companyId})/dimensions",
         "purchaseInvoices": "companies({companyId})/purchaseInvoices",
+        "purchaseInvoicesDimensionSetLines": "companies({companyId})/purchaseInvoices({entityId})/dimensionSetLines",
+        "purchaseInvoiceLinesDimensionSetLines": "companies({companyId})/purchaseInvoiceLines({entityId})/dimensionSetLines",
         "purchaseInvoiceLines": "companies({companyId})/purchaseInvoices({parentId})/purchaseInvoiceLines",
         "Journals": "companies({companyId})/journals"
     }
