@@ -23,7 +23,7 @@ class BillSchemaMapper(BaseMapper):
 
         payload = {
             **self._map_internal_id(),
-            **self._map_vendor(),
+            **self._map_vendor(required=True),
             **self._map_currency(),
             **self._map_dimension_set_lines()
         }

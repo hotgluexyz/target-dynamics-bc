@@ -1,7 +1,7 @@
 import datetime
 from typing import Dict, List, Optional
 
-from target_dynamics_v2.utils import ReferenceData, CompanyNotFound, InvalidDimensionValue, RecordNotFound, DimensionDefinitionNotFound
+from target_dynamics_v2.utils import ReferenceData, CompanyNotFound, InvalidDimensionValue, InvalidInputError, RecordNotFound, DimensionDefinitionNotFound
 
 class BaseMapper:
     """A base class responsible for mapping a record ingested in the unified schema format to a payload for NetSuite"""
@@ -351,7 +351,7 @@ class BaseMapper:
         return {"dimensionSetLines": dimension_set_lines} if dimension_set_lines else {}
 
 
-    def _map_vendor(self):
+    def _map_vendor(self, required: bool=False):
         vendor_info = {}
 
         found_vendor = None
@@ -382,6 +382,13 @@ class BaseMapper:
             vendor_info = {
                 "vendorId": found_vendor["id"]
             }
+
+        if required:
+            if vendor_id is None and vendor_number is None and vendor_name is None:
+                raise InvalidInputError(f"Vendor not informed. Please provide one of vendorId / vendorExternalId / vendorName")
+
+            if not found_vendor:
+                raise RecordNotFound(f"Vendor not found for vendorId={vendor_id} / vendorExternalId={vendor_number} / vendorName={vendor_name}")
 
         return vendor_info
     
