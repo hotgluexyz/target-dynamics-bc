@@ -1,3 +1,4 @@
+import hashlib
 from target_dynamics_v2.mappers.base_mappers import BaseMapper
 from target_dynamics_v2.mappers.journal_entry_line_schema_mapper import JournalEntryLineSchemaMapper
 from target_dynamics_v2.utils import InvalidInputError, MissingField, RecordNotFound
@@ -5,11 +6,11 @@ from target_dynamics_v2.utils import InvalidInputError, MissingField, RecordNotF
 class JournalEntrySchemaMapper(BaseMapper):
     name = "Journals"
     existing_record_pk_mappings = [
-        {"record_field": "externalId", "dynamics_field": "code", "required_if_present": False}
+        {"record_field": "externalId", "dynamics_field": "displayName", "required_if_present": False}
     ]
 
     field_mappings = {
-        "externalId": ["code", "displayName"]
+        "externalId": "displayName"
     }
 
     def to_dynamics(self) -> dict:
@@ -24,6 +25,9 @@ class JournalEntrySchemaMapper(BaseMapper):
 
         self._map_fields(payload)
 
+        
+        payload["code"] = hashlib.sha256(payload["displayName"].encode()).hexdigest()[:10]
+
         is_draft = self.record.get("state") == "draft"
 
         return {"payload": payload, "is_draft": is_draft, "company_id": self.company["id"]}
@@ -33,8 +37,8 @@ class JournalEntrySchemaMapper(BaseMapper):
         if not external_id:
             raise MissingField(f"The required field 'externalId' was not provided")
 
-        if len(external_id) > 10:
-            raise InvalidInputError(f"The length of externalId={external_id} should be less or equal to 10.")
+        if len(external_id) > 20:
+            raise InvalidInputError(f"The length of externalId={external_id} should be less or equal to 20.")
 
     def _validate_transaction_date(self):
         if not self.record.get("transactionDate"):

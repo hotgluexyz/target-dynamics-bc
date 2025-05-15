@@ -14,7 +14,7 @@ class JournalEntrySink(DynamicsBaseBatchSinkSingleUpsert):
     def preprocess_batch(self, records: List[Dict]):
         # fetch existing Journals
         filter_mappings = [
-            {"field_from": "externalId", "field_to": "code", "should_quote": True}
+            {"field_from": "externalId", "field_to": "displayName", "should_quote": True}
         ]
 
         existing_company_journals = self.dynamics_client.get_existing_entities_for_records(
