@@ -1,5 +1,4 @@
 from target_dynamics_v2.mappers.base_mappers import BaseMapper
-from target_dynamics_v2.utils import RecordNotFound
 
 class BillLineItemSchemaMapper(BaseMapper):
     name = "BillLines"
@@ -17,11 +16,10 @@ class BillLineItemSchemaMapper(BaseMapper):
             record,
             sink,
             reference_data,
-            existing_lines,
-            mapped_parent_record
+            existing_lines           
     ) -> None:
         self.existing_lines = existing_lines
-        super().__init__(record, sink, reference_data, mapped_parent_record=mapped_parent_record)
+        super().__init__(record, sink, reference_data)
 
     def to_netsuite(self) -> dict:
         payload = {
