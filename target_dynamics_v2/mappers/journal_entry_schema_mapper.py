@@ -1,3 +1,4 @@
+import hashlib
 from target_dynamics_v2.mappers.base_mappers import BaseMapper
 from target_dynamics_v2.mappers.journal_entry_line_schema_mapper import JournalEntryLineSchemaMapper
 from target_dynamics_v2.utils import InvalidInputError, MissingField, RecordNotFound
@@ -23,6 +24,9 @@ class JournalEntrySchemaMapper(BaseMapper):
         }
 
         self._map_fields(payload)
+
+        
+        payload["code"] = hashlib.sha256(payload["displayName"].encode()).hexdigest()[:10]
 
         is_draft = self.record.get("state") == "draft"
 
