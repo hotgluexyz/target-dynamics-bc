@@ -5,11 +5,11 @@ from target_dynamics_v2.utils import InvalidInputError, MissingField, RecordNotF
 class JournalEntrySchemaMapper(BaseMapper):
     name = "Journals"
     existing_record_pk_mappings = [
-        {"record_field": "externalId", "dynamics_field": "code", "required_if_present": False}
+        {"record_field": "externalId", "dynamics_field": "displayName", "required_if_present": False}
     ]
 
     field_mappings = {
-        "externalId": ["code", "displayName"]
+        "externalId": "displayName"
     }
 
     def to_dynamics(self) -> dict:
