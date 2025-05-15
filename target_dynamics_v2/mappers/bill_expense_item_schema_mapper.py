@@ -25,7 +25,7 @@ class BillExpenseItemSchemaMapper(BaseMapper):
     def to_netsuite(self) -> dict:
         payload = {
             **self._map_internal_id(),
-            **self._map_account(),
+            **self._map_account(required=True),
             **self._map_location(),
             **self._map_dimension_set_lines(),
             "lineType": "Account",
