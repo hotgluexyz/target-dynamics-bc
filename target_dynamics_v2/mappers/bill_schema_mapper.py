@@ -23,7 +23,7 @@ class BillSchemaMapper(BaseMapper):
 
         payload = {
             **self._map_internal_id(),
-            **self._map_vendor(),
+            **self._map_vendor(required=True),
             **self._map_currency(),
             **self._map_dimension_set_lines()
         }
@@ -32,7 +32,7 @@ class BillSchemaMapper(BaseMapper):
 
         self._map_bill_line_items(payload)
 
-        return payload
+        return {"payload": payload, "company_id": self.company["id"]}
 
     def _map_bill_line_items(self, payload):
         mapped_line_items = []
@@ -41,13 +41,13 @@ class BillSchemaMapper(BaseMapper):
         line_items = self.record.get("lineItems", [])
         for line_item in line_items:
             line_item["subsidiaryId"] = self.company["id"]
-            line_payload = BillLineItemSchemaMapper(line_item, self.sink, self.reference_data, existing_lines, payload).to_netsuite()
+            line_payload = BillLineItemSchemaMapper(line_item, self.sink, self.reference_data, existing_lines).to_netsuite()
             mapped_line_items.append(line_payload)
         
         expense_items = self.record.get("expenses", [])
         for expense_item in expense_items:
             expense_item["subsidiaryId"] = self.company["id"]
-            expense_line_payload = BillExpenseItemSchemaMapper(expense_item, self.sink, self.reference_data, existing_lines, payload).to_netsuite()
+            expense_line_payload = BillExpenseItemSchemaMapper(expense_item, self.sink, self.reference_data, existing_lines).to_netsuite()
             mapped_line_items.append(expense_line_payload)
 
         if mapped_line_items:

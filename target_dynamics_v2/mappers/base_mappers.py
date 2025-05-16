@@ -1,7 +1,7 @@
 import datetime
 from typing import Dict, List, Optional
 
-from target_dynamics_v2.utils import ReferenceData, CompanyNotFound, InvalidDimensionValue, RecordNotFound, DimensionDefinitionNotFound
+from target_dynamics_v2.utils import ReferenceData, CompanyNotFound, InvalidDimensionValue, InvalidInputError, RecordNotFound, DimensionDefinitionNotFound
 
 class BaseMapper:
     """A base class responsible for mapping a record ingested in the unified schema format to a payload for NetSuite"""
@@ -11,11 +11,9 @@ class BaseMapper:
             self,
             record,
             sink,
-            reference_data,
-            mapped_parent_record=None
+            reference_data
     ) -> None:
         self.record = record
-        self.mapped_parent_record = mapped_parent_record
         self.sink = sink
         self.reference_data: ReferenceData = reference_data
         self.company = self._map_company()
@@ -279,7 +277,7 @@ class BaseMapper:
             None
         )
 
-    def _map_dimension_set_lines_from_root_fields(self):
+    def _map_dimension_set_lines_from_root_fields(self) -> List[Dict]:
         dimension_set_lines = []
         dimension_mapping = self.sink._target.dimensions_mapping
         for field_name, dimension_code in dimension_mapping.items():
@@ -292,22 +290,11 @@ class BaseMapper:
                 continue
 
             dimension_value = self._get_dimension_value(dimension, field_id, field_external_id, field_name)
-            dimension = {
-                "id": dimension_value["dimensionId"],
-                "valueId": dimension_value["id"]
-            }
-
-            # if present in the parent record we skip it, the dimension will be inherited from the parent 
-            if self._get_existing_dimension_set_line(self.mapped_parent_record, dimension["id"]):
-                continue
-
-            if self._get_existing_dimension_set_line(self.existing_record, dimension["id"]):
-                dimension["existing"] = True
-            dimension_set_lines.append(dimension)  
+            dimension_set_lines.append({"id": dimension_value["dimensionId"], "valueId": dimension_value["id"]})  
 
         return dimension_set_lines
 
-    def _map_dimension_set_lines_from_dimensions_field(self, existing_dimensions: Optional[List[Dict]]=[]):
+    def _map_dimension_set_lines_from_dimensions_field(self, existing_dimensions: List[Dict]=[]) -> List[Dict]:
         dimensions = []
 
         for record_dimension in self.record.get("dimensions", []):
@@ -326,18 +313,11 @@ class BaseMapper:
                 raise InvalidDimensionValue(f"No value was provided for dimension {dimension['code']}")
 
             dimension_value = self._get_dimension_value(dimension, dimension_value_id, dimension_value_code, dimension_value_name)
-            dimension_set_line = {
-                "id": dimension_value["dimensionId"],
-                "valueId": dimension_value["id"]
-            }
             
-            # if present in the parent record we skip it, the dimension will be inherited from the parent 
-            if self._get_existing_dimension_set_line(self.mapped_parent_record, dimension["id"]):
+            if next((True for existing_dimension in existing_dimensions if existing_dimension["id"] == dimension_value["dimensionId"]), False):
                 continue
 
-            if self._get_existing_dimension_set_line(self.existing_record, dimension["id"]):
-                dimension_set_line["existing"] = True
-            dimensions.append(dimension_set_line)  
+            dimensions.append({"id": dimension_value["dimensionId"], "valueId": dimension_value["id"]})  
 
         return dimensions
 
@@ -351,7 +331,7 @@ class BaseMapper:
         return {"dimensionSetLines": dimension_set_lines} if dimension_set_lines else {}
 
 
-    def _map_vendor(self):
+    def _map_vendor(self, required: bool=False):
         vendor_info = {}
 
         found_vendor = None
@@ -382,6 +362,13 @@ class BaseMapper:
             vendor_info = {
                 "vendorId": found_vendor["id"]
             }
+
+        if required:
+            if vendor_id is None and vendor_number is None and vendor_name is None:
+                raise InvalidInputError(f"Vendor not informed. Please provide one of vendorId / vendorExternalId / vendorName")
+
+            if not found_vendor:
+                raise RecordNotFound(f"Vendor not found for vendorId={vendor_id} / vendorExternalId={vendor_number} / vendorName={vendor_name}")
 
         return vendor_info
     
