@@ -2,14 +2,11 @@ from typing import List
 
 from target_dynamics_v2.client import DynamicsClient
 from target_dynamics_v2.mappers.customer_schema_mapper import CustomerSchemaMapper
-from target_dynamics_v2.sinks.base_sinks import DynamicsBaseBatchSink
+from target_dynamics_v2.sinks.base_sinks import DynamicsBaseBatchSinkBatchUpsert
 
-class CustomerSink(DynamicsBaseBatchSink):
+class CustomerSink(DynamicsBaseBatchSinkBatchUpsert):
     name = "Customers"
     record_type = "Customers"
-
-    # fields in the tenant-config of type=field that are allowed to be overwritten
-    allowed_fields_override = ["parentId"]
 
     def preprocess_batch(self, records: List[dict]):
         # fetch reference data related to existing customers

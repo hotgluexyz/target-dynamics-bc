@@ -23,7 +23,8 @@ class DynamicsClient:
         "Vendors": "companies({companyId})/vendors",
         "Dimensions": "companies({companyId})/dimensions",
         "purchaseInvoices": "companies({companyId})/purchaseInvoices",
-        "purchaseInvoiceLines": "companies({companyId})/purchaseInvoices({parentId})/purchaseInvoiceLines"
+        "purchaseInvoiceLines": "companies({companyId})/purchaseInvoices({parentId})/purchaseInvoiceLines",
+        "Journals": "companies({companyId})/journals"
     }
 
     def __init__(self, target) -> None:

@@ -15,6 +15,15 @@ class InvalidInputError(Exception):
 class RecordNotFound(InvalidInputError):
     pass
 
+class DuplicatedRecord(InvalidInputError):
+    pass
+
+class MissingField(InvalidInputError):
+    pass
+
+class InvalidFieldValue(InvalidInputError):
+    pass
+
 class CompanyNotFound(InvalidInputError):
     pass
 
