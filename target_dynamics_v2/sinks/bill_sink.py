@@ -126,6 +126,40 @@ class BillSink(DynamicsBaseBatchSinkSingleUpsert):
             request_params = DynamicsClient.get_entity_upsert_request_params("purchaseInvoiceLines", company_id, entity_id=bill_line_id, url_params=url_params, request_id=request_id)
             bill_lines_upsert_request_data.append({ **request_params, "body": bill_line })
             
+        bill_lines_upsert_responses = self.dynamics_client.make_batch_request(bill_lines_upsert_request_data) if bill_lines_upsert_request_data else []
+        for bill_lines_upsert_response in bill_lines_upsert_responses:
+            if bill_lines_upsert_response.get("status") not in [200, 201]:
+                state["error"] = bill_lines_upsert_response.get("body", {}).get("error")
+                state["record"] = json.dumps(record, cls=HGJSONEncoder, sort_keys=True)
+                return bill_id, False, state
+
+
+        # if we sent locationId for any of the lines that lineType==Item we have to make another request to
+        # update unitCost and discountAmount because Dynamics will have overriten that info with the Item
+        # Catalog info for that item
+        bill_lines_upsert_request_data = []
+        url_params = {"parentId": bill_id}
+        for index, bill_line in enumerate(bill_lines):
+            if not ("locationId" in bill_line and bill_line["lineType"] == "Item"):
+                continue
+
+            # if unitCost and discountAmount is not in the bill_line payload we have nothing to update
+            if "unitCost" not in bill_line and "discountAmount" not in bill_line:
+                continue
+
+            # get line ID from the previous upsert response
+            bill_line_id = bill_lines_upsert_responses[index]["body"]["id"]
+
+            bill_line_payload = {}
+            
+            if "unitCost" in bill_line:
+                bill_line_payload["unitCost"] = bill_line["unitCost"]
+
+            if "discountAmount" in bill_line:
+                bill_line_payload["discountAmount"] = bill_line["discountAmount"]
+
+            request_params = DynamicsClient.get_entity_upsert_request_params("purchaseInvoiceLines", company_id, entity_id=bill_line_id, url_params=url_params)
+            bill_lines_upsert_request_data.append({ **request_params, "body": bill_line_payload })
 
         bill_lines_upsert_responses = self.dynamics_client.make_batch_request(bill_lines_upsert_request_data) if bill_lines_upsert_request_data else []
         for bill_lines_upsert_response in bill_lines_upsert_responses:
