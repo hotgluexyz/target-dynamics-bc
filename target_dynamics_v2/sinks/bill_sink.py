@@ -172,40 +172,50 @@ class BillSink(DynamicsBaseBatchSinkSingleUpsert):
                 state["record"] = json.dumps(record, cls=HGJSONEncoder, sort_keys=True)
                 return bill_id, False, state
 
-        # if there is no bill lines dimensions to upsert we are done. Success!
-        if not bill_lines_dimensions:
-            if is_update:
-                state["is_updated"] = True
+        # upsert bill lines dimensions if there are any
+        if bill_lines_dimensions:
+            # we have to re-fetch the bill otherwise we don't get the inherited dimensionSetLines from the Vendor
+            _, _, bills = self.dynamics_client.get_entities(self.record_type, url_params={"companyId": company_id}, filters={"id": [bill_id]}, expand="dimensionSetLines, purchaseInvoiceLines($expand=dimensionSetLines)")
+            upserted_bill = bills[0]
 
-            return bill_id, True, state
+            # create/update lines dimensions
+            bill_lines_dimensions_requests = []
+            for bill_line_dimensions in bill_lines_dimensions:
+                request_id = bill_line_dimensions["request_id"]
+                bill_line_dimension_set_lines = bill_line_dimensions["dimension_set_lines"]
 
-        # we have to re-fetch the bill otherwise we don't get the inherited dimensionSetLines from the Vendor
-        _, _, bills = self.dynamics_client.get_entities(self.record_type, url_params={"companyId": company_id}, filters={"id": [bill_id]}, expand="dimensionSetLines, purchaseInvoiceLines($expand=dimensionSetLines)")
-        upserted_bill = bills[0]
+                if not bill_line_dimension_set_lines:
+                    continue
 
-        # create/update lines dimensions
-        bill_lines_dimensions_requests = []
-        for bill_line_dimensions in bill_lines_dimensions:
-            request_id = bill_line_dimensions["request_id"]
-            bill_line_dimension_set_lines = bill_line_dimensions["dimension_set_lines"]
+                bill_line_id = next(bill_line_upsert_response["body"]["id"] for bill_line_upsert_response in bill_lines_upsert_responses if bill_line_upsert_response["id"] == request_id)
 
-            if not bill_line_dimension_set_lines:
-                continue
+                upserted_bill_line = next((bill_line for bill_line in upserted_bill["purchaseInvoiceLines"] if bill_line["id"] == bill_line_id), None)
+                existing_bill_line_dimensions = upserted_bill_line.get("dimensionSetLines", [])
 
-            bill_line_id = next(bill_line_upsert_response["body"]["id"] for bill_line_upsert_response in bill_lines_upsert_responses if bill_line_upsert_response["id"] == request_id)
+                bill_lines_dimensions_requests += DynamicsClient.create_dimension_set_lines_requests("purchaseInvoiceLinesDimensionSetLines", company_id, bill_line_id, bill_line_dimension_set_lines, existing_bill_line_dimensions)
+            
+            bill_lines_dimensions_upsert_responses = self.dynamics_client.make_batch_request(bill_lines_dimensions_requests)
 
-            upserted_bill_line = next((bill_line for bill_line in upserted_bill["purchaseInvoiceLines"] if bill_line["id"] == bill_line_id), None)
-            existing_bill_line_dimensions = upserted_bill_line.get("dimensionSetLines", [])
+            for bill_lines_dimensions_upsert_response in bill_lines_dimensions_upsert_responses:
+                if bill_lines_dimensions_upsert_response["status"] not in [200, 201]:
+                    state["error"] = bill_lines_dimensions_upsert_response.get("body", {}).get("error")
+                    state["record"] = json.dumps(record, cls=HGJSONEncoder, sort_keys=True)
+                    return bill_id, False, state
 
-            bill_lines_dimensions_requests += DynamicsClient.create_dimension_set_lines_requests("purchaseInvoiceLinesDimensionSetLines", company_id, bill_line_id, bill_line_dimension_set_lines, existing_bill_line_dimensions)
-        
-        bill_lines_dimensions_upsert_responses = self.dynamics_client.make_batch_request(bill_lines_dimensions_requests)
+        # POST the bill
+        post_bill_endpoint = DynamicsClient.ref_request_endpoints[self.record_type].format(companyId=company_id)
+        post_bill_endpoint = f"{post_bill_endpoint}({bill_id})/Microsoft.NAV.post"
+        request_params = {
+            "url": post_bill_endpoint,
+            "method": "POST"
+        }
 
-        for bill_lines_dimensions_upsert_response in bill_lines_dimensions_upsert_responses:
-            if bill_lines_dimensions_upsert_response["status"] not in [200, 201]:
-                state["error"] = bill_lines_dimensions_upsert_response.get("body", {}).get("error")
-                state["record"] = json.dumps(record, cls=HGJSONEncoder, sort_keys=True)
-                return bill_id, False, state
+        post_bill_response = self.dynamics_client.make_batch_request([request_params])[0]
+
+        if post_bill_response.get("status") != 204:
+            state["error"] = post_bill_response.get("body", {}).get("error")
+            state["record"] = json.dumps(record, cls=HGJSONEncoder, sort_keys=True)
+            return bill_id, False, state
 
         if is_update:
             state["is_updated"] = True
