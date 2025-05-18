@@ -4,6 +4,7 @@ from typing import Dict, List
 from target_dynamics_v2.client import DynamicsClient
 from target_dynamics_v2.mappers.bill_schema_mapper import BillSchemaMapper
 from target_dynamics_v2.sinks.base_sinks import DynamicsBaseBatchSinkSingleUpsert
+from target_dynamics_v2.utils import InvalidRecordState
 from target_hotglue.common import HGJSONEncoder
 
 class BillSink(DynamicsBaseBatchSinkSingleUpsert):
@@ -74,6 +75,9 @@ class BillSink(DynamicsBaseBatchSinkSingleUpsert):
         is_update = bill_id is not None
         bill_dimensions = payload.pop("dimensionSetLines", [])
         bill_lines = payload.pop("purchaseInvoiceLines", [])
+
+        if is_update and record["status"] != "Draft":
+            raise InvalidRecordState(f"Cannot update a Bill that's not in Draft state")
 
         # create/update bill
         request_params = DynamicsClient.get_entity_upsert_request_params(self.record_type, company_id, bill_id)

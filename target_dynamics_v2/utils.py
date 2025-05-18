@@ -9,6 +9,9 @@ class DimensionDefinitionNotFound(InvalidConfigurationError):
 class InvalidCustomFieldDefinition(InvalidConfigurationError):
     pass
 
+class InvalidRecordState(Exception):
+    pass
+
 class InvalidInputError(Exception):
     pass
 
