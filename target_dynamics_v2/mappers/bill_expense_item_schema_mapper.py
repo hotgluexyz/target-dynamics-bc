@@ -45,15 +45,14 @@ class BillExpenseItemSchemaMapper(BaseMapper):
         if record_external_id := self.record.get("externalId"):
             found_record = next(
                 (line for line in self.existing_lines
-                if line["sequence"] == record_external_id),
+                if str(line["sequence"]) == record_external_id),
                 None
             )
 
-        record_account = self._map_account()
-        if (record_account_id := record_account.get("accountId")) and (record_description := self.record.get("description")):
+        if record_description := self.record.get("description"):
             found_record = next(
                 (line for line in self.existing_lines
-                if line["description"] == record_description and line["accountId"] == record_account_id),
+                if line["description"] == record_description),
                 None
             )
 
