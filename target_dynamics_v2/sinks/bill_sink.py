@@ -137,7 +137,7 @@ class BillSink(DynamicsBaseBatchSinkSingleUpsert):
         # if we sent locationId for any of the lines that lineType==Item we have to make another request to
         # update unitCost and discountAmount because Dynamics will have overriten that info with the Item
         # Catalog info for that item
-        bill_lines_upsert_request_data = []
+        bill_lines_update_request_data = []
         url_params = {"parentId": bill_id}
         for index, bill_line in enumerate(bill_lines):
             if not ("locationId" in bill_line and bill_line["lineType"] == "Item"):
@@ -159,12 +159,12 @@ class BillSink(DynamicsBaseBatchSinkSingleUpsert):
                 bill_line_payload["discountAmount"] = bill_line["discountAmount"]
 
             request_params = DynamicsClient.get_entity_upsert_request_params("purchaseInvoiceLines", company_id, entity_id=bill_line_id, url_params=url_params)
-            bill_lines_upsert_request_data.append({ **request_params, "body": bill_line_payload })
+            bill_lines_update_request_data.append({ **request_params, "body": bill_line_payload })
 
-        bill_lines_upsert_responses = self.dynamics_client.make_batch_request(bill_lines_upsert_request_data) if bill_lines_upsert_request_data else []
-        for bill_lines_upsert_response in bill_lines_upsert_responses:
-            if bill_lines_upsert_response.get("status") not in [200, 201]:
-                state["error"] = bill_lines_upsert_response.get("body", {}).get("error")
+        bill_lines_update_responses = self.dynamics_client.make_batch_request(bill_lines_update_request_data) if bill_lines_update_request_data else []
+        for bill_lines_update_response in bill_lines_update_responses:
+            if bill_lines_update_response.get("status") not in [200, 201]:
+                state["error"] = bill_lines_update_response.get("body", {}).get("error")
                 state["record"] = json.dumps(record, cls=HGJSONEncoder, sort_keys=True)
                 return bill_id, False, state
 
