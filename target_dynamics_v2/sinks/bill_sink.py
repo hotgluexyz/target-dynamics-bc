@@ -139,7 +139,7 @@ class BillSink(DynamicsBaseBatchSinkSingleUpsert):
 
 
         # if we sent locationId for any of the lines that lineType==Item we have to make another request to
-        # update unitCost and discountAmount because Dynamics will have overriten that info with the Item
+        # update unitCost and discountAmount because Dynamics will have overwritten that info with the Item
         # Catalog info for that item
         bill_lines_update_request_data = []
         url_params = {"parentId": bill_id}
