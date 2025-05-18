@@ -45,7 +45,7 @@ class BillLineItemSchemaMapper(BaseMapper):
         if record_external_id := self.record.get("externalId"):
             found_record = next(
                 (line for line in self.existing_lines
-                if line["sequence"] == record_external_id),
+                if str(line["sequence"]) == record_external_id),
                 None
             )
 
