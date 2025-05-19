@@ -26,7 +26,10 @@ class DynamicsClient:
         "purchaseInvoicesDimensionSetLines": "companies({companyId})/purchaseInvoices({entityId})/dimensionSetLines",
         "purchaseInvoiceLinesDimensionSetLines": "companies({companyId})/purchaseInvoiceLines({entityId})/dimensionSetLines",
         "purchaseInvoiceLines": "companies({companyId})/purchaseInvoices({parentId})/purchaseInvoiceLines",
-        "Journals": "companies({companyId})/journals"
+        "Journals": "companies({companyId})/journals",
+        "vendorPaymentJournals": "companies({companyId})/vendorPaymentJournals",
+        "vendorPayments": "companies({companyId})/vendorPaymentJournals({parentId})/vendorPayments",
+        "vendorPaymentsDimensionSetLines": "companies({companyId})/vendorPaymentJournals({parentId})/vendorPayments({entityId})/dimensionSetLines"
     }
 
     def __init__(self, target) -> None:
@@ -224,6 +227,50 @@ class DynamicsClient:
             existing_company_entities[company_id] += entities
 
         return existing_company_entities
+    
+    def get_existing_bill_payments_for_records(self, companies_reference_data: List[Dict], company_payment_journals: Dict[str, List], records: List[Dict], filter_mappings: List[Dict]) -> Dict[str, List]:
+        """Maps records to companies and returns a list of entities based on 'records'"""
+        
+        # we need to map the company to query the existing entities
+        company_entities_mapping = {}
+
+        for record in records:
+            company = BaseMapper.get_company_from_record(companies_reference_data, record)
+            if not company:
+                continue
+
+            if company["id"] not in company_entities_mapping.keys():
+                company_entities_mapping[company["id"]] = {}
+            
+            for filter_mapping in filter_mappings:
+                filter_field_from = filter_mapping["field_from"]
+                filter_field_to = filter_mapping["field_to"]
+                filter_field_should_quote = filter_mapping["should_quote"]
+
+                if filter_field_to not in company_entities_mapping[company["id"]]:
+                    company_entities_mapping[company["id"]][filter_field_to] = []
+
+                if rec_value := record.get(filter_field_from):
+                    if filter_field_should_quote:
+                        rec_value = f"'{rec_value}'"
+                    company_entities_mapping[company["id"]][filter_field_to].append(rec_value)
+
+        existing_company_bill_payments = {}
+        # make requests to get existing entities for each company from Dynamics
+        for company_id in company_entities_mapping:
+            url_params = { "companyId": company_id }
+            for payment_journal in company_payment_journals.get(company_id, []):
+                url_params["parentId"] = payment_journal["id"]
+                _, _, entities = self.get_entities(
+                    "vendorPayments",
+                    url_params=url_params,
+                    filters=company_entities_mapping[company_id]
+                )
+                if company_id not in existing_company_bill_payments.keys():
+                    existing_company_bill_payments[company_id] = []
+                existing_company_bill_payments[company_id] += entities
+
+        return existing_company_bill_payments
     
     @staticmethod
     def create_default_dimensions_requests(record_type: str, company_id: str, entity_id: str, default_dimensions: List[dict]):
