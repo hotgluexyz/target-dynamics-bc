@@ -251,7 +251,7 @@ class DynamicsClient:
         return requests
     
     @staticmethod
-    def create_dimension_set_lines_requests(record_type: str, company_id: str, entity_id: str, dimensions_set_lines: List[dict], existing_dimension_set_lines: Optional[List[dict]]=[]):
+    def create_dimension_set_lines_requests(record_type: str, company_id: str, entity_id: str, dimensions_set_lines: List[dict], existing_dimension_set_lines: Optional[List[dict]]=[], parentId: Optional[str]=None):
         """
         Create the requests for upserting dimension set lines for a given entity
         """
@@ -264,7 +264,7 @@ class DynamicsClient:
             found_existing_dimension = next((existing_dimension for existing_dimension in existing_dimension_set_lines if existing_dimension["id"] == dimension_id), None)
 
             endpoint = DynamicsClient.ref_request_endpoints[record_type]
-            endpoint = endpoint.format(companyId=company_id, entityId=entity_id)
+            endpoint = endpoint.format(companyId=company_id, entityId=entity_id, parentId=parentId)
             
             if not found_existing_dimension:
                 request_params = {
