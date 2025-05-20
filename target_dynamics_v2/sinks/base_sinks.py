@@ -267,6 +267,7 @@ class DynamicsBaseBatchSinkSingleUpsert(DynamicsBaseBatchSink):
             try:
                 # performs record mapping from unified to Dynamics
                 record = self.process_batch_record(raw_record)
+                record["externalId"] = raw_record.get("externalId")
                 records.append(record)
             except Exception as e:
                 state = {"error": str(e), "record": json.dumps(raw_record, cls=HGJSONEncoder, sort_keys=True)}

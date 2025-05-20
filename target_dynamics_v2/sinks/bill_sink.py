@@ -67,7 +67,12 @@ class BillSink(DynamicsBaseBatchSinkSingleUpsert):
 
     def upsert_record(self, record: Dict) -> tuple[str, bool, Dict]:
         state = {}
+        externalId = record.pop("externalId", None)
         payload = record["payload"]
+
+
+        if externalId:
+            state["externalId"] = externalId
         
         company_id = record["company_id"]
         bill_id = payload.pop("id", None)
@@ -133,6 +138,8 @@ class BillSink(DynamicsBaseBatchSinkSingleUpsert):
                 state["error"] = bill_lines_upsert_response.get("body", {}).get("error")
                 state["record"] = json.dumps(record, cls=HGJSONEncoder, sort_keys=True)
                 return bill_id, False, state
+        
+        
 
         # if there is no bill lines dimensions to upsert we are done. Success!
         if not bill_lines_dimensions:
