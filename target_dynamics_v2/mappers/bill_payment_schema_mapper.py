@@ -9,7 +9,6 @@ class BillPaymentSchemaMapper(BaseMapper):
     ]
 
     field_mappings = {
-        "paymentTransactionNumber": "lineNumber",
         "externalId": "documentNumber",
         "paymentDate": "postingDate",
         "amount": "amount"
