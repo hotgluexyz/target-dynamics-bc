@@ -76,8 +76,6 @@ class TargetDynamicsV2(TargetHotglue):
         if "dynamics-bc" not in tenant_config:
             tenant_config["dynamics-bc"] = {
                 "dimension_mappings": {
-                    "class": "CLASS",
-                    "department": "DEPARTMENT"
                 }
             }
 

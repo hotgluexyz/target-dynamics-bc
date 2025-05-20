@@ -75,7 +75,7 @@ class BaseMapper:
         if phone_numbers := self.record.get("phoneNumbers", []):
             found_record = next(
                 (phone_number for phone_number in phone_numbers
-                if phone_number["type"] == "unknown"),
+                if phone_number.get("type") == "unknown"),
                 None
             )
 
@@ -93,7 +93,7 @@ class BaseMapper:
         if addresses := self.record.get("addresses", []):
             found_record = next(
                 (address for address in addresses
-                if address["addressType"] == "shipping"),
+                if address.get("addressType") == "shipping"),
                 None
             )
 
