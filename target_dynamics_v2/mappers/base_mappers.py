@@ -1,6 +1,6 @@
 import datetime
 from typing import Dict, List, Optional
-
+from target_dynamics_v2.constants import countries
 from target_dynamics_v2.utils import ReferenceData, CompanyNotFound, InvalidDimensionValue, InvalidInputError, RecordNotFound, DimensionDefinitionNotFound
 
 class BaseMapper:
@@ -109,6 +109,13 @@ class BaseMapper:
                 "postalCode": found_record.get("postalCode"),
             }
 
+            # Map country to its code if neccesary
+            if found_record.get("country") and len(found_record.get("country")) != 2:
+                if countries.get(found_record.get("country")):
+                    address_info["country"] = countries.get(found_record.get("country"))
+                else:
+                    raise InvalidInputError(f"Country {found_record.get('country')} not found in the list of supported country codes")
+                
         return address_info
 
     def _map_currency(self):
