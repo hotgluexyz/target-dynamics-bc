@@ -112,7 +112,7 @@ class DynamicsBaseBatchSinkBatchUpsert(DynamicsBaseBatchSink):
 
         return responses
 
-    def handle_non_atomic_batch_response(self, responses: List[dict], records: List[dict]) -> dict:
+    def handle_non_atomic_batch_response(self, responses: List[dict], records: List[dict], raw_records: List[dict]) -> dict:
         """
         This method should return a dict.
         It's recommended that you return a key named "state_updates".
@@ -129,12 +129,17 @@ class DynamicsBaseBatchSinkBatchUpsert(DynamicsBaseBatchSink):
             state = {}
 
             record = records[index]
+            raw_record = raw_records[index]
+
             if hash := record.pop("hash", None):
                 state["hash"] = hash
 
             if response["status"] in [200, 201]:
                 state["success"] = True
                 state["id"] = response.get("body", {}).get("id")
+                if raw_record.get("externalId"):
+                    state["externalId"] = raw_record.get("externalId")
+
 
             if response["status"] == 200:
                 state["is_updated"] = True
@@ -147,7 +152,7 @@ class DynamicsBaseBatchSinkBatchUpsert(DynamicsBaseBatchSink):
 
         return {"state_updates": state_updates}
     
-    def handle_atomic_batch_response(self, responses: List[dict], record: dict) -> dict:
+    def handle_atomic_batch_response(self, responses: List[dict], record: dict, raw_record: dict) -> dict:
         """
         This method should return a dict with the state update
         
@@ -176,6 +181,9 @@ class DynamicsBaseBatchSinkBatchUpsert(DynamicsBaseBatchSink):
 
         state["success"] = True
         state["id"] = first_response.get("body", {}).get("id")
+
+        if raw_record.get("externalId"):
+            state["externalId"] = raw_record.get("externalId")
 
         if first_response["status"] == 200:
             state["is_updated"] = True
@@ -219,13 +227,13 @@ class DynamicsBaseBatchSinkBatchUpsert(DynamicsBaseBatchSink):
         non_atomic_records = [record for record in records if len(record["records"])==1] 
 
         non_atomic_responses = self.make_batch_request(non_atomic_records)
-        result = self.handle_non_atomic_batch_response(non_atomic_responses, non_atomic_records)
+        result = self.handle_non_atomic_batch_response(non_atomic_responses, non_atomic_records, raw_records)
         for state in result.get("state_updates", list()):
             self.update_state(state)
 
-        for atomic_record in atomic_records:
+        for atomic_record, index in atomic_records:
             atomic_responses = self.make_batch_request([atomic_record], transaction_type="atomic")
-            state = self.handle_atomic_batch_response(atomic_responses, atomic_record)
+            state = self.handle_atomic_batch_response(atomic_responses, atomic_record, raw_records[index])
             self.update_state(state)
 
 
