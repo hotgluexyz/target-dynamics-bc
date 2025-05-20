@@ -119,6 +119,7 @@ class BaseMapper:
                     address_info["country"] = countries.get(found_record.get("country"))
                 else:
                     LOGGER.warning(f"Country {found_record.get('country')} not found in the list of supported country codes")
+                    address_info["country"] = None
                 
         return address_info
 
