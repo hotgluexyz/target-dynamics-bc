@@ -372,6 +372,40 @@ class BaseMapper:
 
         return vendor_info
     
+    def _map_payment_journal(self, required: bool=False):
+        payment_journal_info = {}
+
+        found_journal = None
+        payment_journal_reference_data = self.reference_data.get("VendorPaymentJournals", {}).get(self.company["id"], [])
+
+        if journal_id := self.record.get("journalId"):
+            found_journal = next(
+                (journal for journal in payment_journal_reference_data
+                if journal["id"] == journal_id),
+                None
+            )
+
+        if (journal_code := self.record.get("journalExternalId")) and not found_journal:
+            found_journal = next(
+                (journal for journal in payment_journal_reference_data
+                if journal["code"] == journal_code),
+                None
+            )
+
+        if found_journal:
+            payment_journal_info = {
+                "journalId": found_journal["id"]
+            }
+
+        if required:
+            if journal_id is None and journal_code is None:
+                raise InvalidInputError(f"Vendor payment journal not informed. Please provide one of journalId / journalExternalId")
+
+            if not found_journal:
+                raise RecordNotFound(f"Vendor payment journal not found for journalId={journal_id} / journalExternalId={journal_code}")
+
+        return payment_journal_info
+
     def _map_account(self, required: bool=False):
         account_info = {}
 
