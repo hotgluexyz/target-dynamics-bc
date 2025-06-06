@@ -455,7 +455,7 @@ class BaseMapper:
                 None
             )
 
-        if (location_external_id := self.record.get("locationExternalId")) and not found_location:
+        if (location_external_id := self.record.get("locationNumber")) and not found_location:
             found_location = next(
                 (location for location in locations_reference_data
                 if location["code"] == location_external_id),
