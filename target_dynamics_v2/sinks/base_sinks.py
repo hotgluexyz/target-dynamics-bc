@@ -253,36 +253,47 @@ class DynamicsBaseBatchSinkSingleUpsert(DynamicsBaseBatchSink):
         self.preprocess_batch(raw_records)
 
         records = []
-        for raw_record in raw_records:
+        for index, raw_record in enumerate(raw_records):
             try:
+                record_hash = self.build_record_hash(raw_record)
+                # if the record is duplicated within this job run we skip it
+                if self.get_existing_state(record_hash):
+                    continue
+
                 # performs record mapping from unified to Dynamics
                 record = self.process_batch_record(raw_record)
+                record["raw_record_index"] = index
                 records.append(record)
             except Exception as e:
                 state = {"success": False, "error": str(e)}
                 if id := raw_record.get("id"):
                     state["id"] = id
+                if externalId := raw_record.get("externalId"):
+                    state["externalId"] = externalId
                 self.update_state(state)
-
-        self.hash_records(records)
-        records = self.check_for_duplicated_records(records)
 
         for record in records:
             try:
+                raw_record_idx = record.pop("raw_record_index", None)
+                raw_record = raw_records[raw_record_idx] if raw_record_idx is not None else {}
+                external_id = raw_record.get("externalId")
                 id, success, state = self.upsert_record(record)
             except  Exception as e:
                 state = {"success": False, "error": str(e)}
                 if id := record.get("id"):
                     state["id"] = id
+                if external_id:
+                    state["externalId"] = external_id
                 self.update_state(state)
             else:
                 if success:
                     self.logger.info(f"{self.name} processed id: {id}")
 
                 state["success"] = success
-                state["hash"] = record.get("hash")
 
                 if id:
                     state["id"] = id
-
+                if external_id:
+                    state["externalId"] = external_id
+                
                 self.update_state(state)
