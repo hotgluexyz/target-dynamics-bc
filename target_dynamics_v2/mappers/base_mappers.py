@@ -343,7 +343,7 @@ class BaseMapper:
                 None
             )
 
-        if (vendor_number := self.record.get("vendorExternalId")) and not found_vendor:
+        if (vendor_number := self.record.get("vendorNumber")) and not found_vendor:
             found_vendor = next(
                 (vendor for vendor in vendors_reference_data
                 if vendor["number"] == vendor_number),
@@ -364,10 +364,10 @@ class BaseMapper:
 
         if required:
             if vendor_id is None and vendor_number is None and vendor_name is None:
-                raise InvalidInputError(f"Vendor not informed. Please provide one of vendorId / vendorExternalId / vendorName")
+                raise InvalidInputError(f"Vendor not informed. Please provide one of vendorId / vendorNumber / vendorName")
 
             if not found_vendor:
-                raise RecordNotFound(f"Vendor not found for vendorId={vendor_id} / vendorExternalId={vendor_number} / vendorName={vendor_name}")
+                raise RecordNotFound(f"Vendor not found for vendorId={vendor_id} / vendorNumber={vendor_number} / vendorName={vendor_name}")
 
         return vendor_info
     
