@@ -112,7 +112,7 @@ class DynamicsBaseBatchSinkBatchUpsert(DynamicsBaseBatchSink):
 
         return responses
 
-    def handle_non_atomic_batch_response(self, responses: List[dict], records: List[dict]) -> dict:
+    def handle_non_atomic_batch_response(self, responses: List[dict], records: List[dict], raw_records: List[dict]) -> dict:
         """
         This method should return a dict.
         It's recommended that you return a key named "state_updates".
@@ -129,8 +129,9 @@ class DynamicsBaseBatchSinkBatchUpsert(DynamicsBaseBatchSink):
             state = {}
 
             record = records[index]
-            if hash := record.pop("hash", None):
-                state["hash"] = hash
+            raw_record = raw_records[record["raw_record_index"]]
+            if external_id := raw_record.get("externalId"):
+                state["externalId"] = external_id
 
             if response["status"] in [200, 201]:
                 state["success"] = True
@@ -146,7 +147,7 @@ class DynamicsBaseBatchSinkBatchUpsert(DynamicsBaseBatchSink):
 
         return {"state_updates": state_updates}
     
-    def handle_atomic_batch_response(self, responses: List[dict], record: dict) -> dict:
+    def handle_atomic_batch_response(self, responses: List[dict], record: dict, raw_records: List[dict]) -> dict:
         """
         This method should return a dict with the state update
         
@@ -164,8 +165,9 @@ class DynamicsBaseBatchSinkBatchUpsert(DynamicsBaseBatchSink):
         first_response = responses[0]
         last_response = responses[-1]
 
-        if hash := record.pop("hash", None):
-            state["hash"] = hash
+        raw_record = raw_records[record["raw_record_index"]]
+        if external_id := raw_record.get("externalId"):
+            state["externalId"] = external_id
 
         if last_response["status"] >= 400:
             state["success"] = False
@@ -189,19 +191,24 @@ class DynamicsBaseBatchSinkBatchUpsert(DynamicsBaseBatchSink):
         self.preprocess_batch(raw_records)
 
         records = []
-        for raw_record in raw_records:
+        for index, raw_record in enumerate(raw_records):
             try:
+                record_hash = self.build_record_hash(raw_record)
+                # if the record is duplicated within this job run we skip it
+                if self.get_existing_state(record_hash):
+                    continue
                 # performs record mapping from unified to Dynamics
                 record = self.process_batch_record(raw_record)
+                record["raw_record_index"] = index
                 records.append(record)
             except Exception as e:
                 state = {"success": False, "error": str(e)}
                 if id := raw_record.get("id"):
                     state["id"] = id
-                self.update_state(state)
+                if external_id := raw_record.get("externalId"):
+                    state["externalId"] = external_id
 
-        self.hash_records(records)
-        records = self.check_for_duplicated_records(records)
+                self.update_state(state)
 
         # separate atomic and non atomic records
         # 
@@ -217,13 +224,13 @@ class DynamicsBaseBatchSinkBatchUpsert(DynamicsBaseBatchSink):
         non_atomic_records = [record for record in records if len(record["records"])==1] 
 
         non_atomic_responses = self.make_batch_request(non_atomic_records)
-        result = self.handle_non_atomic_batch_response(non_atomic_responses, non_atomic_records)
+        result = self.handle_non_atomic_batch_response(non_atomic_responses, non_atomic_records, raw_records)
         for state in result.get("state_updates", list()):
             self.update_state(state)
 
         for atomic_record in atomic_records:
             atomic_responses = self.make_batch_request([atomic_record], transaction_type="atomic")
-            state = self.handle_atomic_batch_response(atomic_responses, atomic_record)
+            state = self.handle_atomic_batch_response(atomic_responses, atomic_record, raw_records)
             self.update_state(state)
 
 
