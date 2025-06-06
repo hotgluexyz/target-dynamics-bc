@@ -4,11 +4,11 @@ class CustomerSchemaMapper(BaseMapper):
     name = "Customers"
     existing_record_pk_mappings = [
         {"record_field": "id", "dynamics_field": "id", "required_if_present": True},
-        {"record_field": "externalId", "dynamics_field": "number", "required_if_present": False}
+        {"record_field": "customerNumber", "dynamics_field": "number", "required_if_present": False}
     ]
 
     field_mappings = {
-        "externalId": "number",
+        "customerNumber": "number",
         "companyName": "displayName",
         "email": "email",
         "website": "website",
