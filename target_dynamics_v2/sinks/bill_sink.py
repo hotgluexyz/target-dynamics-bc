@@ -77,6 +77,7 @@ class BillSink(DynamicsBaseBatchSinkSingleUpsert):
         company_id = record["company_id"]
         bill_id = payload.pop("id", None)
         is_update = bill_id is not None
+        is_draft = record.pop("is_draft", False)
         bill_dimensions = payload.pop("dimensionSetLines", [])
         bill_lines = payload.pop("purchaseInvoiceLines", [])
 
@@ -201,19 +202,20 @@ class BillSink(DynamicsBaseBatchSinkSingleUpsert):
                     state["error"] = bill_lines_dimensions_upsert_response.get("body", {}).get("error")
                     return bill_id, False, state
 
-        # POST the bill
-        post_bill_endpoint = DynamicsClient.ref_request_endpoints[self.record_type].format(companyId=company_id)
-        post_bill_endpoint = f"{post_bill_endpoint}({bill_id})/Microsoft.NAV.post"
-        request_params = {
-            "url": post_bill_endpoint,
-            "method": "POST"
-        }
+        # POST the bill if is_draft is False
+        if not is_draft:
+            post_bill_endpoint = DynamicsClient.ref_request_endpoints[self.record_type].format(companyId=company_id)
+            post_bill_endpoint = f"{post_bill_endpoint}({bill_id})/Microsoft.NAV.post"
+            request_params = {
+                "url": post_bill_endpoint,
+                "method": "POST"
+            }
 
-        post_bill_response = self.dynamics_client.make_batch_request([request_params])[0]
+            post_bill_response = self.dynamics_client.make_batch_request([request_params])[0]
 
-        if post_bill_response.get("status") != 204:
-            state["error"] = post_bill_response.get("body", {}).get("error")
-            return bill_id, False, state
+            if post_bill_response.get("status") != 204:
+                state["error"] = post_bill_response.get("body", {}).get("error")
+                return bill_id, False, state
 
         if is_update:
             state["is_updated"] = True

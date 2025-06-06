@@ -34,7 +34,12 @@ class BillSchemaMapper(BaseMapper):
 
         status = self.existing_record["status"] if self.existing_record else None
 
-        return {"payload": payload, "id": payload.get("id"), "company_id": self.company["id"], "status": status}
+        return {
+            "payload": payload,
+            "id": payload.get("id"),
+            "company_id": self.company["id"],
+            "is_draft": self.record.get("isDraft", False),
+            "status": status}
 
     def _map_bill_line_items(self, payload):
         mapped_line_items = []
