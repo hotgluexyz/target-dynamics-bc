@@ -141,7 +141,6 @@ class DynamicsBaseBatchSinkBatchUpsert(DynamicsBaseBatchSink):
 
             if response["status"] >= 400:
                 state["success"] = False
-                state["record"] = json.dumps(record["records"], cls=HGJSONEncoder, sort_keys=True)
                 state["error"] = response.get("body", {}).get("error")
             state_updates.append(state)
 
@@ -170,7 +169,6 @@ class DynamicsBaseBatchSinkBatchUpsert(DynamicsBaseBatchSink):
 
         if last_response["status"] >= 400:
             state["success"] = False
-            state["record"] = json.dumps(record["records"], cls=HGJSONEncoder, sort_keys=True)
             state["error"] = last_response.get("body", {}).get("error")
             return state
 
@@ -197,7 +195,7 @@ class DynamicsBaseBatchSinkBatchUpsert(DynamicsBaseBatchSink):
                 record = self.process_batch_record(raw_record)
                 records.append(record)
             except Exception as e:
-                state = {"error": str(e), "record": json.dumps(raw_record, cls=HGJSONEncoder, sort_keys=True)}
+                state = {"success": False, "error": str(e)}
                 if id := raw_record.get("id"):
                     state["id"] = id
                 self.update_state(state)
@@ -261,7 +259,7 @@ class DynamicsBaseBatchSinkSingleUpsert(DynamicsBaseBatchSink):
                 record = self.process_batch_record(raw_record)
                 records.append(record)
             except Exception as e:
-                state = {"error": str(e), "record": json.dumps(raw_record, cls=HGJSONEncoder, sort_keys=True)}
+                state = {"success": False, "error": str(e)}
                 if id := raw_record.get("id"):
                     state["id"] = id
                 self.update_state(state)
@@ -273,7 +271,7 @@ class DynamicsBaseBatchSinkSingleUpsert(DynamicsBaseBatchSink):
             try:
                 id, success, state = self.upsert_record(record)
             except  Exception as e:
-                state = {"error": str(e), "record": json.dumps(record, cls=HGJSONEncoder, sort_keys=True)}
+                state = {"success": False, "error": str(e)}
                 if id := record.get("id"):
                     state["id"] = id
                 self.update_state(state)

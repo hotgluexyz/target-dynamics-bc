@@ -1,11 +1,10 @@
-import json
 from typing import Dict, List
 
 from target_dynamics_v2.client import DynamicsClient
 from target_dynamics_v2.mappers.bill_schema_mapper import BillSchemaMapper
 from target_dynamics_v2.sinks.base_sinks import DynamicsBaseBatchSinkSingleUpsert
 from target_dynamics_v2.utils import InvalidRecordState
-from target_hotglue.common import HGJSONEncoder
+
 
 class BillSink(DynamicsBaseBatchSinkSingleUpsert):
     name = "Bills"
@@ -86,7 +85,6 @@ class BillSink(DynamicsBaseBatchSinkSingleUpsert):
 
         if bill_upsert_response.get("status") not in [200, 201]:
             state["error"] = bill_upsert_response.get("body", {}).get("error")
-            state["record"] = json.dumps(record, cls=HGJSONEncoder, sort_keys=True)
             return bill_id, False, state
         
         bill_id = bill_upsert_response["body"]["id"]
@@ -104,7 +102,6 @@ class BillSink(DynamicsBaseBatchSinkSingleUpsert):
             for bill_dimensions_upsert_response in bill_dimensions_upsert_responses:
                 if bill_dimensions_upsert_response["status"] not in [200, 201]:
                     state["error"] = bill_dimensions_upsert_response.get("body", {}).get("error")
-                    state["record"] = json.dumps(record, cls=HGJSONEncoder, sort_keys=True)
                     return bill_id, False, state
         
         # if there is no bill lines to upsert we are done. Success!
@@ -134,7 +131,6 @@ class BillSink(DynamicsBaseBatchSinkSingleUpsert):
         for bill_lines_upsert_response in bill_lines_upsert_responses:
             if bill_lines_upsert_response.get("status") not in [200, 201]:
                 state["error"] = bill_lines_upsert_response.get("body", {}).get("error")
-                state["record"] = json.dumps(record, cls=HGJSONEncoder, sort_keys=True)
                 return bill_id, False, state
 
 
@@ -169,7 +165,6 @@ class BillSink(DynamicsBaseBatchSinkSingleUpsert):
         for bill_lines_update_response in bill_lines_update_responses:
             if bill_lines_update_response.get("status") not in [200, 201]:
                 state["error"] = bill_lines_update_response.get("body", {}).get("error")
-                state["record"] = json.dumps(record, cls=HGJSONEncoder, sort_keys=True)
                 return bill_id, False, state
 
         # upsert bill lines dimensions if there are any
@@ -199,7 +194,6 @@ class BillSink(DynamicsBaseBatchSinkSingleUpsert):
             for bill_lines_dimensions_upsert_response in bill_lines_dimensions_upsert_responses:
                 if bill_lines_dimensions_upsert_response["status"] not in [200, 201]:
                     state["error"] = bill_lines_dimensions_upsert_response.get("body", {}).get("error")
-                    state["record"] = json.dumps(record, cls=HGJSONEncoder, sort_keys=True)
                     return bill_id, False, state
 
         # POST the bill
@@ -214,7 +208,6 @@ class BillSink(DynamicsBaseBatchSinkSingleUpsert):
 
         if post_bill_response.get("status") != 204:
             state["error"] = post_bill_response.get("body", {}).get("error")
-            state["record"] = json.dumps(record, cls=HGJSONEncoder, sort_keys=True)
             return bill_id, False, state
 
         if is_update:
