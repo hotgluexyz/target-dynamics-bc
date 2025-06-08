@@ -8,11 +8,11 @@ class BillSchemaMapper(BaseMapper):
     existing_record_pk_mappings = [
         {"record_field": "id", "dynamics_field": "id", "required_if_present": True},
         {"record_field": "transactionNumber", "dynamics_field": "number", "required_if_present": False},
-        {"record_field": "externalId", "dynamics_field": "vendorInvoiceNumber", "required_if_present": False}
+        {"record_field": "billNumber", "dynamics_field": "vendorInvoiceNumber", "required_if_present": False}
     ]
 
     field_mappings = {
-        "externalId": "vendorInvoiceNumber",
+        "billNumber": "vendorInvoiceNumber",
         "dueDate": "dueDate",
         "issueDate": "invoiceDate",
         "postingDate": "postingDate"

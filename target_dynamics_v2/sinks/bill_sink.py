@@ -16,7 +16,7 @@ class BillSink(DynamicsBaseBatchSinkSingleUpsert):
         bill_filter_mappings = [
             {"field_from": "id", "field_to": "id", "should_quote": False},
             {"field_from": "transactionNumber", "field_to": "number", "should_quote": True},
-            {"field_from": "externalId", "field_to": "vendorInvoiceNumber", "should_quote": True},
+            {"field_from": "billNumber", "field_to": "vendorInvoiceNumber", "should_quote": True},
         ]
         existing_company_bills = self.dynamics_client.get_existing_entities_for_records(
             self._target.reference_data.get("companies", []),
