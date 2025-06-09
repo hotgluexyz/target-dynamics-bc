@@ -24,7 +24,7 @@ class BillSink(DynamicsBaseBatchSinkSingleUpsert):
             self.record_type,
             records,
             bill_filter_mappings,
-            expand="dimensionSetLines, purchaseInvoiceLines($expand=dimensionSetLines)"
+            expand="dimensionSetLines, purchaseInvoiceLines($expand=dimensionSetLines), attachments"
         )
 
         # get vendors for company, filter by id, number, displayName
@@ -60,23 +60,7 @@ class BillSink(DynamicsBaseBatchSinkSingleUpsert):
             item_filter_mappings
         ) if items else []
 
-        attachment_filter_mappings = [
-            {"field_from": "id", "field_to": "id", "should_quote": False},
-            {"field_from": "fileName", "field_to": "fileName", "should_quote": True},
-        ]
-
-        all_attachments = []
-        for record in records:
-            all_attachments.extend([ {"fileName": attachment, "parentType": "Purchase Invoice", "subsidiaryId": record["subsidiaryId"]} for attachment in record.get("attachments", [])])
-        
-        existing_company_attachments = self.dynamics_client.get_existing_entities_for_records(
-            self._target.reference_data.get("companies", []),
-            "Attachments",
-            all_attachments,
-            attachment_filter_mappings
-        ) if all_attachments else []
-
-        self.reference_data = {**self._target.reference_data, self.name: existing_company_bills, "Vendors": existing_company_vendors, "Items": existing_company_items, "Attachments": existing_company_attachments}
+        self.reference_data = {**self._target.reference_data, self.name: existing_company_bills, "Vendors": existing_company_vendors, "Items": existing_company_items}
 
     def process_batch_record(self, record: dict) -> dict:
         # perform the mapping
@@ -188,7 +172,9 @@ class BillSink(DynamicsBaseBatchSinkSingleUpsert):
             attachments_content_requests = []
             attachments_requests = []
             request_params = DynamicsClient.get_entity_upsert_request_params("Attachments", company_id, url_params={"parentId": bill_id})
-            for attachment in attachments:
+            new_attachments = [a for a in attachments if not a.get("payload", {}).get("id")]
+            identified_attachments = [a for a in attachments if a.get("payload", {}).get("id")]
+            for attachment in new_attachments:
                 attachments_requests.append(
                     { **request_params, 
                      "body": {
@@ -199,29 +185,26 @@ class BillSink(DynamicsBaseBatchSinkSingleUpsert):
                     }
                 )
             attachments_post_responses = self.dynamics_client.make_batch_request(attachments_requests)
-            for attachments_post_response, attachment in zip(attachments_post_responses, attachments):
+            for attachments_post_response, attachment in zip(attachments_post_responses, new_attachments):
                 if attachments_post_response["status"] not in [200, 201]:
                     state["error"] = attachments_post_response.get("body", {}).get("error")
                     state["record"] = json.dumps(record, cls=HGJSONEncoder, sort_keys=True)
                     return bill_id, False, state
+                attachment["payload"]["id"] = attachments_post_response["body"]["id"]
+                identified_attachments.append(attachment)
                 
-                # Now we patch the attachment content
-                attachment_id = attachments_post_response["body"]["id"]
+            # Now we patch the attachment content
+            for attachment in identified_attachments:
+                attachment_id = attachment.get("payload", {}).get("id")
                 attachment_content = attachment.get("payload", {}).get("attachmentContent")
                 request_params = DynamicsClient.get_entity_upsert_request_params("AttachmentsContent", company_id, url_params={"parentId": attachment_id})
-                request_params["headers"] = {"Content-Type": "application/pdf"}
-                attachments_content_requests.append({ **request_params, "data": attachment_content, "method": "PATCH"})
-            attachments_content_post_responses = self.dynamics_client.make_batch_request(attachments_content_requests)
-            for attachments_content_post_response in attachments_content_post_responses:
-                if attachments_content_post_response["status"] not in [200, 201, 204]:
-                    state["error"] = attachments_content_post_response.get("body", {}).get("error")
+                request_params["headers"] = {"Content-Type": "application/octet-stream", "If-Match": "*"}
+                response = self.dynamics_client._make_request(request_params["url"], "PATCH", data=attachment_content, headers=request_params["headers"], should_dump_json=False)
+                if response.status_code not in [200, 201, 204]:
+                    state["error"] = response.json().get("error")
                     state["record"] = json.dumps(record, cls=HGJSONEncoder, sort_keys=True)
                     return bill_id, False, state
-            
                 
-        
-                
-
 
         if is_update:
             state["is_updated"] = True

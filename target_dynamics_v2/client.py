@@ -41,7 +41,7 @@ class DynamicsClient:
         r = requests.Session()
         return self.auth(r)
     
-    def _make_request(self, endpoint, method, data=None, params=None, headers=None):
+    def _make_request(self, endpoint, method, data=None, params=None, headers=None, should_dump_json=True):
         request_headers = {"Content-Type": "application/json"}
         if headers:
             request_headers.update(headers)
@@ -51,14 +51,15 @@ class DynamicsClient:
 
         request = self.get_auth()
         request.headers.update(request_headers)
-
-        json_data = json.dumps(data, cls=HGJSONEncoder) if data else None
+        
+        if should_dump_json:
+            data = json.dumps(data, cls=HGJSONEncoder) if data else None
 
         return request.request(
             method=method,
             url=url,
             params=request_params,
-            data=json_data,
+            data=data,
             verify=True
         )
     
