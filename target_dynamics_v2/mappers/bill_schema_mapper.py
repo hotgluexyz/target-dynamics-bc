@@ -1,3 +1,4 @@
+from target_dynamics_v2.mappers.attachment_schema_mapper import AttachmentSchemaMapper
 from target_dynamics_v2.mappers.base_mappers import BaseMapper
 from target_dynamics_v2.mappers.bill_expense_item_schema_mapper import BillExpenseItemSchemaMapper
 from target_dynamics_v2.mappers.bill_line_item_schema_mapper import BillLineItemSchemaMapper
@@ -31,6 +32,7 @@ class BillSchemaMapper(BaseMapper):
         self._map_fields(payload)
 
         self._map_bill_line_items(payload)
+        self._map_attachments(payload)
 
         return {"payload": payload, "company_id": self.company["id"]}
 
@@ -52,3 +54,21 @@ class BillSchemaMapper(BaseMapper):
 
         if mapped_line_items:
             payload["purchaseInvoiceLines"] = mapped_line_items
+
+
+    def _map_attachments(self, payload):
+        attachments = self.record.get("attachments", [])
+
+        
+        mapped_attachments = []
+        for attachment in attachments:
+            attachment_payload = AttachmentSchemaMapper({
+                "fileName": attachment,
+                "parentId": payload.get("id"),
+                "parentType": "Purchase Invoice",
+                "subsidiaryId": self.company["id"]
+            }, self.sink, self.reference_data).to_dynamics()
+            mapped_attachments.append(attachment_payload)
+
+        if mapped_attachments:
+            payload["attachments"] = mapped_attachments

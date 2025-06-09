@@ -26,7 +26,9 @@ class DynamicsClient:
         "purchaseInvoicesDimensionSetLines": "companies({companyId})/purchaseInvoices({entityId})/dimensionSetLines",
         "purchaseInvoiceLinesDimensionSetLines": "companies({companyId})/purchaseInvoiceLines({entityId})/dimensionSetLines",
         "purchaseInvoiceLines": "companies({companyId})/purchaseInvoices({parentId})/purchaseInvoiceLines",
-        "Journals": "companies({companyId})/journals"
+        "Journals": "companies({companyId})/journals",
+        "Attachments": "companies({companyId})/attachments",
+        "AttachmentsContent": "companies({companyId})/attachments(id={parentId})/attachmentContent"
     }
 
     def __init__(self, target) -> None:
