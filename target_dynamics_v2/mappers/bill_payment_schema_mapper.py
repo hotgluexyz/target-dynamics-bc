@@ -5,11 +5,12 @@ class BillPaymentSchemaMapper(BaseMapper):
     name = "BillPayments"
     existing_record_pk_mappings = [
         {"record_field": "id", "dynamics_field": "id", "required_if_present": True},
-        {"record_field": "externalId", "dynamics_field": "documentNumber", "required_if_present": False}
+        {"record_field": "paymentNumber", "dynamics_field": "documentNumber", "required_if_present": False}
     ]
 
     field_mappings = {
-        "externalId": "documentNumber",
+        "paymentNumber": "documentNumber",
+        "transactionNumber": "lineNumber",
         "paymentDate": "postingDate",
         "amount": "amount"
     }
@@ -76,6 +77,13 @@ class BillPaymentSchemaMapper(BaseMapper):
                 None
             )
 
+        if (bill_number := self.record.get("billNumber")) and not found_bill:
+            found_bill = next(
+                (bill for bill in bill_reference_data
+                if bill["vendorInvoiceNumber"] == bill_number),
+                None
+            )
+
         if (bill_invoice_number := self.record.get("billExternalId")) and not found_bill:
             found_bill = next(
                 (bill for bill in bill_reference_data
@@ -83,11 +91,11 @@ class BillPaymentSchemaMapper(BaseMapper):
                 None
             )
 
-        if bill_id is None and bill_invoice_number is None:
-            raise InvalidInputError(f"Bill not informed. Please provide one of billId / billExternalId")
+        if bill_id is None and bill_invoice_number is None and bill_number is None:
+            raise InvalidInputError(f"Bill not informed. Please provide one of billId / billNumber / billExternalId")
 
         if not found_bill:
-            raise RecordNotFound(f"Bill not found for billId={bill_id} / billExternalId={bill_invoice_number}")
+            raise RecordNotFound(f"Bill not found for billId={bill_id} / billNumber={bill_number} / billExternalId={bill_invoice_number}")
 
 
         return { "appliesToInvoiceId": found_bill["id"] }
