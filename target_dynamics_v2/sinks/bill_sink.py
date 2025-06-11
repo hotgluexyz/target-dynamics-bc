@@ -108,6 +108,8 @@ class BillSink(DynamicsBaseBatchSinkSingleUpsert):
                 if bill_dimensions_upsert_response["status"] not in [200, 201]:
                     state["error"] = bill_dimensions_upsert_response.get("body", {}).get("error")
                     state["record"] = json.dumps(record, cls=HGJSONEncoder, sort_keys=True)
+                    if not is_update:
+                        self.delete_bill(bill_id, company_id)
                     return bill_id, False, state
         
         if bill_lines:
@@ -133,6 +135,8 @@ class BillSink(DynamicsBaseBatchSinkSingleUpsert):
                 if bill_lines_upsert_response.get("status") not in [200, 201]:
                     state["error"] = bill_lines_upsert_response.get("body", {}).get("error")
                     state["record"] = json.dumps(record, cls=HGJSONEncoder, sort_keys=True)
+                    if not is_update:
+                        self.delete_bill(bill_id, company_id)
                     return bill_id, False, state
             
     
@@ -165,6 +169,8 @@ class BillSink(DynamicsBaseBatchSinkSingleUpsert):
                 if bill_lines_dimensions_upsert_response["status"] not in [200, 201]:
                     state["error"] = bill_lines_dimensions_upsert_response.get("body", {}).get("error")
                     state["record"] = json.dumps(record, cls=HGJSONEncoder, sort_keys=True)
+                    if not is_update:
+                        self.delete_bill(bill_id, company_id)
                     return bill_id, False, state
                 
 
@@ -189,6 +195,8 @@ class BillSink(DynamicsBaseBatchSinkSingleUpsert):
                 if attachments_post_response["status"] not in [200, 201]:
                     state["error"] = attachments_post_response.get("body", {}).get("error")
                     state["record"] = json.dumps(record, cls=HGJSONEncoder, sort_keys=True)
+                    if not is_update:
+                        self.delete_bill(bill_id, company_id)
                     return bill_id, False, state
                 attachment["payload"]["id"] = attachments_post_response["body"]["id"]
                 identified_attachments.append(attachment)
@@ -201,8 +209,10 @@ class BillSink(DynamicsBaseBatchSinkSingleUpsert):
                 request_params["headers"] = {"Content-Type": "application/octet-stream", "If-Match": "*"}
                 response = self.dynamics_client._make_request(request_params["url"], "PATCH", data=attachment_content, headers=request_params["headers"], should_dump_json=False)
                 if response.status_code not in [200, 201, 204]:
-                    state["error"] = response.json().get("error")
+                    state["error"] = response.json().get("error") if response.text else "Unparsed error"
                     state["record"] = json.dumps(record, cls=HGJSONEncoder, sort_keys=True)
+                    if not is_update:
+                        self.delete_bill(bill_id, company_id)
                     return bill_id, False, state
                 
 
@@ -212,5 +222,11 @@ class BillSink(DynamicsBaseBatchSinkSingleUpsert):
         return bill_id, True, state
     
 
+
+
+    def delete_bill(self, bill_id: str, company_id: str):
+        request_params = DynamicsClient.get_entity_upsert_request_params(self.record_type, company_id, bill_id)
+        bill_delete_request_data = [{ **request_params, "method": "DELETE" }]
+        self.dynamics_client.make_batch_request(bill_delete_request_data)
 
 
