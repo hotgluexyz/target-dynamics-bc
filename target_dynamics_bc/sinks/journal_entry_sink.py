@@ -1,9 +1,9 @@
 from typing import Dict, List
 
-from target_dynamics_v2.client import DynamicsClient
-from target_dynamics_v2.mappers.journal_entry_schema_mapper import JournalEntrySchemaMapper
-from target_dynamics_v2.sinks.base_sinks import DynamicsBaseBatchSinkSingleUpsert
-from target_dynamics_v2.utils import DuplicatedRecord
+from target_dynamics_bc.client import DynamicsClient
+from target_dynamics_bc.mappers.journal_entry_schema_mapper import JournalEntrySchemaMapper
+from target_dynamics_bc.sinks.base_sinks import DynamicsBaseBatchSinkSingleUpsert
+from target_dynamics_bc.utils import DuplicatedRecord
 
 
 class JournalEntrySink(DynamicsBaseBatchSinkSingleUpsert):

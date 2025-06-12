@@ -1,8 +1,8 @@
 from typing import List
 
-from target_dynamics_v2.client import DynamicsClient
-from target_dynamics_v2.mappers.customer_schema_mapper import CustomerSchemaMapper
-from target_dynamics_v2.sinks.base_sinks import DynamicsBaseBatchSinkBatchUpsert
+from target_dynamics_bc.client import DynamicsClient
+from target_dynamics_bc.mappers.customer_schema_mapper import CustomerSchemaMapper
+from target_dynamics_bc.sinks.base_sinks import DynamicsBaseBatchSinkBatchUpsert
 
 class CustomerSink(DynamicsBaseBatchSinkBatchUpsert):
     name = "Customers"

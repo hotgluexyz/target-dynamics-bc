@@ -1,6 +1,6 @@
-from target_dynamics_v2.mappers.base_mappers import BaseMapper
-from target_dynamics_v2.mappers.bill_expense_item_schema_mapper import BillExpenseItemSchemaMapper
-from target_dynamics_v2.mappers.bill_line_item_schema_mapper import BillLineItemSchemaMapper
+from target_dynamics_bc.mappers.base_mappers import BaseMapper
+from target_dynamics_bc.mappers.bill_expense_item_schema_mapper import BillExpenseItemSchemaMapper
+from target_dynamics_bc.mappers.bill_line_item_schema_mapper import BillLineItemSchemaMapper
 
 
 class BillSchemaMapper(BaseMapper):

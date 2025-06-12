@@ -1,13 +1,13 @@
 import json
 import requests
 
-from target_dynamics_v2.mappers.base_mappers import BaseMapper
+from target_dynamics_bc.mappers.base_mappers import BaseMapper
 from target_hotglue.common import HGJSONEncoder
 from typing import Dict, List, Optional
 import singer
 
 
-from target_dynamics_v2.auth import DynamicsAuth
+from target_dynamics_bc.auth import DynamicsAuth
 
 LOGGER = singer.get_logger()
 

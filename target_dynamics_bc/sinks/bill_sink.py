@@ -1,9 +1,9 @@
 from typing import Dict, List
 
-from target_dynamics_v2.client import DynamicsClient
-from target_dynamics_v2.mappers.bill_schema_mapper import BillSchemaMapper
-from target_dynamics_v2.sinks.base_sinks import DynamicsBaseBatchSinkSingleUpsert
-from target_dynamics_v2.utils import InvalidRecordState
+from target_dynamics_bc.client import DynamicsClient
+from target_dynamics_bc.mappers.bill_schema_mapper import BillSchemaMapper
+from target_dynamics_bc.sinks.base_sinks import DynamicsBaseBatchSinkSingleUpsert
+from target_dynamics_bc.utils import InvalidRecordState
 
 
 class BillSink(DynamicsBaseBatchSinkSingleUpsert):

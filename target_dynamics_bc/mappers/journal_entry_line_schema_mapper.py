@@ -1,5 +1,5 @@
-from target_dynamics_v2.mappers.base_mappers import BaseMapper
-from target_dynamics_v2.utils import InvalidFieldValue
+from target_dynamics_bc.mappers.base_mappers import BaseMapper
+from target_dynamics_bc.utils import InvalidFieldValue
 
 class JournalEntryLineSchemaMapper(BaseMapper):
     name = "JournalEntryLine"

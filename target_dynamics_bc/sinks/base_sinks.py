@@ -8,7 +8,7 @@ from singer_sdk.sinks import BatchSink
 from target_hotglue.client import HotglueBaseSink
 from target_hotglue.common import HGJSONEncoder
 
-from target_dynamics_v2.client import DynamicsClient
+from target_dynamics_bc.client import DynamicsClient
 
 class DynamicsBaseBatchSink(HotglueBaseSink, BatchSink):
     max_size = 1000 # max allowed by dynamics is 1000

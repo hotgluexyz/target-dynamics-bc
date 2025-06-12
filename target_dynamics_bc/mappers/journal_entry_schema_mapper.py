@@ -1,7 +1,7 @@
 import hashlib
-from target_dynamics_v2.mappers.base_mappers import BaseMapper
-from target_dynamics_v2.mappers.journal_entry_line_schema_mapper import JournalEntryLineSchemaMapper
-from target_dynamics_v2.utils import InvalidInputError, MissingField, RecordNotFound
+from target_dynamics_bc.mappers.base_mappers import BaseMapper
+from target_dynamics_bc.mappers.journal_entry_line_schema_mapper import JournalEntryLineSchemaMapper
+from target_dynamics_bc.utils import InvalidInputError, MissingField, RecordNotFound
 
 class JournalEntrySchemaMapper(BaseMapper):
     name = "Journals"

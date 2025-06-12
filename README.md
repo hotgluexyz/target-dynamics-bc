@@ -1,13 +1,13 @@
-# target-dynamics-v2
+# target-dynamics-bc
 
-`target-dynamics-v2` is a Singer target for DynamicsV2.
+`target-dynamics-bc` is a Singer target for DynamicsV2.
 
 Built by [Hotglue](https://hotglue.com) using singer-sdk.
 
 ## Installation
 
 ```bash
-pipx install target-dynamics-v2
+pipx install target-dynamics-bc
 ```
 
 ## Configuration
@@ -28,7 +28,7 @@ A full list of supported settings and capabilities for this
 target is available by running:
 
 ```bash
-target-dynamics-v2 --about
+target-dynamics-bc --about
 ```
 
 ### Configure using environment variables
@@ -42,10 +42,10 @@ environment variable is set either in the terminal context or in the `.env` file
 ### Executing the Target Directly
 
 ```bash
-target-dynamics-v2 --version
-target-dynamics-v2 --help
+target-dynamics-bc --version
+target-dynamics-bc --help
 # Test using the "Carbon Intensity" sample:
-tap-carbon-intensity | target-dynamics-v2 --config /path/to/target-dynamics-v2-config.json
+tap-carbon-intensity | target-dynamics-bc --config /path/to/target-dynamics-bc-config.json
 ```
 
 ## Developer Resources
@@ -60,16 +60,16 @@ poetry install
 
 ### Create and Run Tests
 
-Create tests within the `target_dynamics_v2/tests` subfolder and
+Create tests within the `target_dynamics_bc/tests` subfolder and
   then run:
 
 ```bash
 poetry run pytest
 ```
 
-You can also test the `target-dynamics-v2` CLI interface directly using `poetry run`:
+You can also test the `target-dynamics-bc` CLI interface directly using `poetry run`:
 
 ```bash
-poetry run target-dynamics-v2 --help
+poetry run target-dynamics-bc --help
 ```
 

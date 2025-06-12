@@ -6,7 +6,7 @@ from typing import Dict, Any
 
 from singer_sdk.testing import get_standard_target_tests
 
-from target_dynamics_v2.target import TargetDynamicsV2
+from target_dynamics_bc.target import TargetDynamicsV2
 
 SAMPLE_CONFIG: Dict[str, Any] = {
     # TODO: Initialize minimal target config

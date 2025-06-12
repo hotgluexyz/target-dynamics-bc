@@ -1,8 +1,8 @@
 from typing import List
 
-from target_dynamics_v2.client import DynamicsClient
-from target_dynamics_v2.mappers.vendor_schema_mapper import VendorSchemaMapper
-from target_dynamics_v2.sinks.base_sinks import DynamicsBaseBatchSinkBatchUpsert
+from target_dynamics_bc.client import DynamicsClient
+from target_dynamics_bc.mappers.vendor_schema_mapper import VendorSchemaMapper
+from target_dynamics_bc.sinks.base_sinks import DynamicsBaseBatchSinkBatchUpsert
 
 class VendorSink(DynamicsBaseBatchSinkBatchUpsert):
     name = "Vendors"

@@ -5,13 +5,13 @@ import os
 from singer_sdk import typing as th
 from target_hotglue.target import TargetHotglue
 
-from target_dynamics_v2.client import DynamicsClient
-from target_dynamics_v2.sinks.bill_payment_sink import BillPaymentSink
-from target_dynamics_v2.sinks.bill_sink import BillSink
-from target_dynamics_v2.sinks.customer_sink import CustomerSink
-from target_dynamics_v2.sinks.journal_entry_sink import JournalEntrySink
-from target_dynamics_v2.sinks.vendor_sink import VendorSink
-from target_dynamics_v2.utils import ReferenceData, DimensionDefinitionNotFound, InvalidConfigurationError
+from target_dynamics_bc.client import DynamicsClient
+from target_dynamics_bc.sinks.bill_payment_sink import BillPaymentSink
+from target_dynamics_bc.sinks.bill_sink import BillSink
+from target_dynamics_bc.sinks.customer_sink import CustomerSink
+from target_dynamics_bc.sinks.journal_entry_sink import JournalEntrySink
+from target_dynamics_bc.sinks.vendor_sink import VendorSink
+from target_dynamics_bc.utils import ReferenceData, DimensionDefinitionNotFound, InvalidConfigurationError
 
 class TargetDynamicsV2(TargetHotglue):
     """Sample target for DynamicsV2."""
@@ -22,7 +22,7 @@ class TargetDynamicsV2(TargetHotglue):
         BillPaymentSink,
         JournalEntrySink
     ]
-    name = "target-dynamics-v2"
+    name = "target-dynamics-bc"
     def __init__(
         self,
         config=None,

@@ -1,8 +1,8 @@
 from typing import Dict, List
 
-from target_dynamics_v2.client import DynamicsClient
-from target_dynamics_v2.mappers.bill_payment_schema_mapper import BillPaymentSchemaMapper
-from target_dynamics_v2.sinks.base_sinks import DynamicsBaseBatchSinkSingleUpsert
+from target_dynamics_bc.client import DynamicsClient
+from target_dynamics_bc.mappers.bill_payment_schema_mapper import BillPaymentSchemaMapper
+from target_dynamics_bc.sinks.base_sinks import DynamicsBaseBatchSinkSingleUpsert
 
 
 class BillPaymentSink(DynamicsBaseBatchSinkSingleUpsert):

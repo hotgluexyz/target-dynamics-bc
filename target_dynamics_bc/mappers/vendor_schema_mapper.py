@@ -1,4 +1,4 @@
-from target_dynamics_v2.mappers.base_mappers import BaseMapper
+from target_dynamics_bc.mappers.base_mappers import BaseMapper
 
 class VendorSchemaMapper(BaseMapper):
     name = "Vendors"

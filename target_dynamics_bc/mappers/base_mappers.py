@@ -1,7 +1,7 @@
 import datetime
 from typing import Dict, List, Optional
 
-from target_dynamics_v2.utils import ReferenceData, CompanyNotFound, InvalidDimensionValue, InvalidInputError, RecordNotFound, DimensionDefinitionNotFound
+from target_dynamics_bc.utils import ReferenceData, CompanyNotFound, InvalidDimensionValue, InvalidInputError, RecordNotFound, DimensionDefinitionNotFound
 
 class BaseMapper:
     """A base class responsible for mapping a record ingested in the unified schema format to a payload for NetSuite"""
