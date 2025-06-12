@@ -1,10 +1,9 @@
-import json
 from typing import Dict, List
 
 from target_dynamics_v2.client import DynamicsClient
 from target_dynamics_v2.mappers.bill_payment_schema_mapper import BillPaymentSchemaMapper
 from target_dynamics_v2.sinks.base_sinks import DynamicsBaseBatchSinkSingleUpsert
-from target_hotglue.common import HGJSONEncoder
+
 
 class BillPaymentSink(DynamicsBaseBatchSinkSingleUpsert):
     name = "BillPayments"
@@ -84,7 +83,6 @@ class BillPaymentSink(DynamicsBaseBatchSinkSingleUpsert):
 
         if bill_payment_upsert_response.get("status") not in [200, 201]:
             state["error"] = bill_payment_upsert_response.get("body", {}).get("error")
-            state["record"] = json.dumps(record, cls=HGJSONEncoder, sort_keys=True)
             return bill_payment_id, False, state
         
         bill_payment_id = bill_payment_upsert_response["body"]["id"]
@@ -102,7 +100,6 @@ class BillPaymentSink(DynamicsBaseBatchSinkSingleUpsert):
             for bill_payment_dimensions_upsert_response in bill_payment_dimensions_upsert_responses:
                 if bill_payment_dimensions_upsert_response["status"] not in [200, 201]:
                     state["error"] = bill_payment_dimensions_upsert_response.get("body", {}).get("error")
-                    state["record"] = json.dumps(record, cls=HGJSONEncoder, sort_keys=True)
                     return bill_payment_id, False, state
 
         if is_update:
