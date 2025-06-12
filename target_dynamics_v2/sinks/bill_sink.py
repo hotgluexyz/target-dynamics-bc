@@ -16,7 +16,7 @@ class BillSink(DynamicsBaseBatchSinkSingleUpsert):
         bill_filter_mappings = [
             {"field_from": "id", "field_to": "id", "should_quote": False},
             {"field_from": "transactionNumber", "field_to": "number", "should_quote": True},
-            {"field_from": "externalId", "field_to": "vendorInvoiceNumber", "should_quote": True},
+            {"field_from": "billNumber", "field_to": "vendorInvoiceNumber", "should_quote": True},
         ]
         existing_company_bills = self.dynamics_client.get_existing_entities_for_records(
             self._target.reference_data.get("companies", []),
@@ -29,7 +29,7 @@ class BillSink(DynamicsBaseBatchSinkSingleUpsert):
         # get vendors for company, filter by id, number, displayName
         vendor_filter_mappings = [
             {"field_from": "vendorId", "field_to": "id", "should_quote": False},
-            {"field_from": "vendorExternalId", "field_to": "number", "should_quote": True},
+            {"field_from": "vendorNumber", "field_to": "number", "should_quote": True},
             {"field_from": "vendorName", "field_to": "displayName", "should_quote": True},
         ]
         existing_company_vendors = self.dynamics_client.get_existing_entities_for_records(
@@ -43,13 +43,13 @@ class BillSink(DynamicsBaseBatchSinkSingleUpsert):
         items_set = set()
         # remove duplicated items across all records
         for record in records:
-            items_set.update((line_item.get("itemId"), line_item.get("itemExternalId"), line_item.get("itemName"), record.get("subsidiaryId"), record.get("subsidiaryName")) for line_item in record.get("lineItems", []))
+            items_set.update((line_item.get("itemId"), line_item.get("itemNumber"), line_item.get("itemName"), record.get("subsidiaryId"), record.get("subsidiaryName")) for line_item in record.get("lineItems", []))
         # make a list of unique items
-        items = [{"itemId": item[0], "itemExternalId": item[1], "itemName": item[2], "subsidiaryId": item[3], "subsidiaryName": item[4]} for item in items_set]
-        sorted_items = sorted(items, key=lambda item: (item.get("itemId"), item.get("itemExternalId"), item.get("itemName"), item.get("subsidiaryId"), item.get("subsidiaryName")))
+        items = [{"itemId": item[0], "itemNumber": item[1], "itemName": item[2], "subsidiaryId": item[3], "subsidiaryName": item[4]} for item in items_set]
+        sorted_items = sorted(items, key=lambda item: (item.get("itemId"), item.get("itemNumber"), item.get("itemName"), item.get("subsidiaryId"), item.get("subsidiaryName")))
         item_filter_mappings = [
             {"field_from": "itemId", "field_to": "id", "should_quote": False},
-            {"field_from": "itemExternalId", "field_to": "number", "should_quote": True},
+            {"field_from": "itemNumber", "field_to": "number", "should_quote": True},
             {"field_from": "itemName", "field_to": "displayName", "should_quote": True},
         ]
         existing_company_items = self.dynamics_client.get_existing_entities_for_records(
@@ -59,7 +59,12 @@ class BillSink(DynamicsBaseBatchSinkSingleUpsert):
             item_filter_mappings
         ) if items else []
 
-        self.reference_data = {**self._target.reference_data, self.name: existing_company_bills, "Vendors": existing_company_vendors, "Items": existing_company_items}
+        self.reference_data = {
+            **self._target.reference_data,
+            self.name: existing_company_bills,
+            "Vendors": existing_company_vendors,
+            "Items": existing_company_items
+        }
 
     def process_batch_record(self, record: dict) -> dict:
         # perform the mapping
@@ -72,6 +77,7 @@ class BillSink(DynamicsBaseBatchSinkSingleUpsert):
         company_id = record["company_id"]
         bill_id = payload.pop("id", None)
         is_update = bill_id is not None
+        is_draft = record.pop("is_draft", False)
         bill_dimensions = payload.pop("dimensionSetLines", [])
         bill_lines = payload.pop("purchaseInvoiceLines", [])
 
@@ -196,19 +202,21 @@ class BillSink(DynamicsBaseBatchSinkSingleUpsert):
                     state["error"] = bill_lines_dimensions_upsert_response.get("body", {}).get("error")
                     return bill_id, False, state
 
-        # POST the bill
-        post_bill_endpoint = DynamicsClient.ref_request_endpoints[self.record_type].format(companyId=company_id)
-        post_bill_endpoint = f"{post_bill_endpoint}({bill_id})/Microsoft.NAV.post"
-        request_params = {
-            "url": post_bill_endpoint,
-            "method": "POST"
-        }
+        # POST the bill if is_draft is False
+        if not is_draft:
+            post_bill_endpoint = DynamicsClient.ref_request_endpoints[self.record_type].format(companyId=company_id)
+            post_bill_endpoint = f"{post_bill_endpoint}({bill_id})/Microsoft.NAV.post"
+            request_params = {
+                "url": post_bill_endpoint,
+                "method": "POST"
+            }
 
-        post_bill_response = self.dynamics_client.make_batch_request([request_params])[0]
+            post_bill_response = self.dynamics_client.make_batch_request([request_params])[0]
 
-        if post_bill_response.get("status") != 204:
-            state["error"] = post_bill_response.get("body", {}).get("error")
-            return bill_id, False, state
+            if post_bill_response.get("status") != 204:
+                state["error"] = post_bill_response.get("body", {}).get("error")
+                return bill_id, False, state
+
 
         if is_update:
             state["is_updated"] = True

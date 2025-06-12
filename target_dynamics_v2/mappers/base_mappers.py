@@ -212,13 +212,13 @@ class BaseMapper:
         for field_name, dimension_code in dimension_mapping.items():
             dimension = self._get_dimension(dimension_code=dimension_code)
             field_id = self.record.get(f"{field_name}Id", None)
-            field_external_id = self.record.get(f"{field_name}ExternalId", None)
+            field_number = self.record.get(f"{field_name}Number", None)
             field_name = self.record.get(f"{field_name}Name", None)
 
-            if not field_id and not field_external_id and not field_name:
+            if not field_id and not field_number and not field_name:
                 continue
 
-            dimension_value = self._get_dimension_value(dimension, field_id, field_external_id, field_name)
+            dimension_value = self._get_dimension_value(dimension, field_id, field_number, field_name)
             default_dimension = {
                 "dimensionId": dimension_value["dimensionId"],
                 "dimensionValueId": dimension_value["id"]
@@ -234,11 +234,11 @@ class BaseMapper:
 
         for record_dimension in self.record.get("dimensions", []):
             dimension_id = record_dimension.get("id")
-            dimension_code = record_dimension.get("externalId")
+            dimension_code = record_dimension.get("number")
             dimension_name = record_dimension.get("name")
 
             dimension_value_id = record_dimension.get("valueId")
-            dimension_value_code = record_dimension.get("valueExternalId")
+            dimension_value_code = record_dimension.get("valueNumber")
             dimension_value_name = record_dimension.get("value")
 
             # first validate that the dimension exists in Dynamics
@@ -259,10 +259,10 @@ class BaseMapper:
         return default_dimensions
 
     def _map_default_dimensions_dimensions(self):
-        # we first try to map dimensions that is in the root field of the record, example classExternalId="CLASS01"
+        # we first try to map dimensions that is in the root field of the record, example classNumber="CLASS01"
         default_dimensions = self._map_default_dimensions_from_root_fields()
 
-        # then we map dimensions that is in the "dimensions" field of the record, example dimensions = [{ "externaId": "AREA", "valueExternalId": "15" }]
+        # then we map dimensions that is in the "dimensions" field of the record, example dimensions = [{ "externaId": "AREA", "valueNumber": "15" }]
         default_dimensions += self._map_default_dimensions_from_dimensions_field(existing_dimensions=default_dimensions)
         
         return {"defaultDimensions": default_dimensions} if default_dimensions else {}
@@ -283,13 +283,13 @@ class BaseMapper:
         for field_name, dimension_code in dimension_mapping.items():
             dimension = self._get_dimension(dimension_code=dimension_code)
             field_id = self.record.get(f"{field_name}Id", None)
-            field_external_id = self.record.get(f"{field_name}ExternalId", None)
+            field_number = self.record.get(f"{field_name}Number", None)
             field_name = self.record.get(f"{field_name}Name", None)
 
-            if not field_id and not field_external_id and not field_name:
+            if not field_id and not field_number and not field_name:
                 continue
 
-            dimension_value = self._get_dimension_value(dimension, field_id, field_external_id, field_name)
+            dimension_value = self._get_dimension_value(dimension, field_id, field_number, field_name)
             dimension_set_lines.append({"id": dimension_value["dimensionId"], "valueId": dimension_value["id"]})  
 
         return dimension_set_lines
@@ -299,11 +299,11 @@ class BaseMapper:
 
         for record_dimension in self.record.get("dimensions", []):
             dimension_id = record_dimension.get("id")
-            dimension_code = record_dimension.get("externalId")
+            dimension_code = record_dimension.get("number")
             dimension_name = record_dimension.get("name")
 
             dimension_value_id = record_dimension.get("valueId")
-            dimension_value_code = record_dimension.get("valueExternalId")
+            dimension_value_code = record_dimension.get("valueNumber")
             dimension_value_name = record_dimension.get("value")
 
             # first validate that the dimension exists in Dynamics
@@ -322,14 +322,13 @@ class BaseMapper:
         return dimensions
 
     def _map_dimension_set_lines(self):
-        # we first try to map dimensions that is in the root field of the record, example classExternalId="CLASS01"
+        # we first try to map dimensions that is in the root field of the record, example classNumber="CLASS01"
         dimension_set_lines = self._map_dimension_set_lines_from_root_fields()
 
-        # then we map dimensions that is in the "dimensions" field of the record, example dimensions = [{ "externaId": "AREA", "valueExternalId": "15" }]
+        # then we map dimensions that is in the "dimensions" field of the record, example dimensions = [{ "externaId": "AREA", "valueNumber": "15" }]
         dimension_set_lines += self._map_dimension_set_lines_from_dimensions_field(existing_dimensions=dimension_set_lines)
 
         return {"dimensionSetLines": dimension_set_lines} if dimension_set_lines else {}
-
 
     def _map_vendor(self, required: bool=False):
         vendor_info = {}
@@ -344,7 +343,7 @@ class BaseMapper:
                 None
             )
 
-        if (vendor_number := self.record.get("vendorExternalId")) and not found_vendor:
+        if (vendor_number := self.record.get("vendorNumber")) and not found_vendor:
             found_vendor = next(
                 (vendor for vendor in vendors_reference_data
                 if vendor["number"] == vendor_number),
@@ -365,10 +364,10 @@ class BaseMapper:
 
         if required:
             if vendor_id is None and vendor_number is None and vendor_name is None:
-                raise InvalidInputError(f"Vendor not informed. Please provide one of vendorId / vendorExternalId / vendorName")
+                raise InvalidInputError(f"Vendor not informed. Please provide one of vendorId / vendorNumber / vendorName")
 
             if not found_vendor:
-                raise RecordNotFound(f"Vendor not found for vendorId={vendor_id} / vendorExternalId={vendor_number} / vendorName={vendor_name}")
+                raise RecordNotFound(f"Vendor not found for vendorId={vendor_id} / vendorNumber={vendor_number} / vendorName={vendor_name}")
 
         return vendor_info
     
@@ -456,7 +455,7 @@ class BaseMapper:
                 None
             )
 
-        if (location_external_id := self.record.get("locationExternalId")) and not found_location:
+        if (location_external_id := self.record.get("locationNumber")) and not found_location:
             found_location = next(
                 (location for location in locations_reference_data
                 if location["code"] == location_external_id),

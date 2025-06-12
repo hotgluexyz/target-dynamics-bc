@@ -8,11 +8,11 @@ class BillSchemaMapper(BaseMapper):
     existing_record_pk_mappings = [
         {"record_field": "id", "dynamics_field": "id", "required_if_present": True},
         {"record_field": "transactionNumber", "dynamics_field": "number", "required_if_present": False},
-        {"record_field": "externalId", "dynamics_field": "vendorInvoiceNumber", "required_if_present": False}
+        {"record_field": "billNumber", "dynamics_field": "vendorInvoiceNumber", "required_if_present": False}
     ]
 
     field_mappings = {
-        "externalId": "vendorInvoiceNumber",
+        "billNumber": "vendorInvoiceNumber",
         "dueDate": "dueDate",
         "issueDate": "invoiceDate",
         "postingDate": "postingDate"
@@ -34,7 +34,12 @@ class BillSchemaMapper(BaseMapper):
 
         status = self.existing_record["status"] if self.existing_record else None
 
-        return {"payload": payload, "id": payload.get("id"), "company_id": self.company["id"], "status": status}
+        return {
+            "payload": payload,
+            "id": payload.get("id"),
+            "company_id": self.company["id"],
+            "is_draft": self.record.get("isDraft", False),
+            "status": status}
 
     def _map_bill_line_items(self, payload):
         mapped_line_items = []

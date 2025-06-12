@@ -12,7 +12,7 @@ class VendorSink(DynamicsBaseBatchSinkBatchUpsert):
         # fetch reference data related to existing vendors
         filter_mappings = [
             {"field_from": "id", "field_to": "id", "should_quote": False},
-            {"field_from": "externalId", "field_to": "number", "should_quote": True}
+            {"field_from": "vendorNumber", "field_to": "number", "should_quote": True}
         ]
 
         existing_company_vendors = self.dynamics_client.get_existing_entities_for_records(

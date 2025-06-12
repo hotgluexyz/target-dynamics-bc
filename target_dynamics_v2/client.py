@@ -216,12 +216,21 @@ class DynamicsClient:
         # make requests to get existing entities for each company from Dynamics
         for company_id in company_entities_mapping:
             url_params = { "companyId": company_id }
-            _, _, entities = self.get_entities(
-                record_type,
-                url_params=url_params,
-                filters=company_entities_mapping[company_id],
-                expand=expand
-            )
+            
+            has_filters_to_apply = False
+            for filter_values in company_entities_mapping[company_id].values():
+                if filter_values:
+                    has_filters_to_apply = True
+
+            entities = []
+            if has_filters_to_apply:
+                _, _, entities = self.get_entities(
+                    record_type,
+                    url_params=url_params,
+                    filters=company_entities_mapping[company_id],
+                    expand=expand
+                )
+
             if company_id not in existing_company_entities.keys():
                 existing_company_entities[company_id] = []
             existing_company_entities[company_id] += entities

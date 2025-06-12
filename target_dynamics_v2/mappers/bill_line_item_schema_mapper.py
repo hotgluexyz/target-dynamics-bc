@@ -72,7 +72,7 @@ class BillLineItemSchemaMapper(BaseMapper):
                 None
             )
 
-        if (item_external_id := self.record.get("itemExternalId")) and not found_item:
+        if (item_external_id := self.record.get("itemNumber")) and not found_item:
             found_item = next(
                 (item for item in items_reference_data
                 if item["number"] == item_external_id),
