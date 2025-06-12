@@ -217,6 +217,7 @@ class BillSink(DynamicsBaseBatchSinkSingleUpsert):
                 state["error"] = post_bill_response.get("body", {}).get("error")
                 return bill_id, False, state
 
+
         if is_update:
             state["is_updated"] = True
 
