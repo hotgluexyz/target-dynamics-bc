@@ -186,7 +186,9 @@ class DynamicsBaseBatchSinkBatchUpsert(DynamicsBaseBatchSink):
         if not self.latest_state:
             self.init_state()
 
-        raw_records = context["records"]
+        raw_records = context.get("records", [])
+        if not raw_records:
+            return
 
         self.preprocess_batch(raw_records)
 
@@ -255,7 +257,9 @@ class DynamicsBaseBatchSinkSingleUpsert(DynamicsBaseBatchSink):
         if not self.latest_state:
             self.init_state()
 
-        raw_records = context["records"]
+        raw_records = context.get("records", [])
+        if not raw_records:
+            return
 
         self.preprocess_batch(raw_records)
 
