@@ -1,5 +1,6 @@
 from typing import Dict, List
 
+from hotglue_models_accounting.accounting import BillPayment
 from target_dynamics_bc.client import DynamicsClient
 from target_dynamics_bc.mappers.bill_payment_schema_mapper import BillPaymentSchemaMapper
 from target_dynamics_bc.sinks.base_sinks import DynamicsBaseBatchSinkSingleUpsert
@@ -8,6 +9,8 @@ from target_dynamics_bc.sinks.base_sinks import DynamicsBaseBatchSinkSingleUpser
 class BillPaymentSink(DynamicsBaseBatchSinkSingleUpsert):
     name = "BillPayments"
     record_type = "vendorPayments"
+    unified_schema = BillPayment
+    auto_validate_unified_schema = True
 
     def preprocess_batch(self, records: List[dict]):
         # get vendor payment journals for company, filter by id and code

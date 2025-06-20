@@ -1,5 +1,6 @@
 from typing import Dict, List
 
+from hotglue_models_accounting.accounting import Bill
 from target_dynamics_bc.client import DynamicsClient
 from target_dynamics_bc.mappers.bill_schema_mapper import BillSchemaMapper
 from target_dynamics_bc.sinks.base_sinks import DynamicsBaseBatchSinkSingleUpsert
@@ -9,6 +10,8 @@ from target_dynamics_bc.utils import InvalidRecordState
 class BillSink(DynamicsBaseBatchSinkSingleUpsert):
     name = "Bills"
     record_type = "purchaseInvoices"
+    unified_schema = Bill
+    auto_validate_unified_schema = True
 
     def preprocess_batch(self, records: List[dict]):
         # fetch reference data related to existing customers

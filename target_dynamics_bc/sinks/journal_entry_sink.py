@@ -1,5 +1,6 @@
 from typing import Dict, List
 
+from hotglue_models_accounting.accounting import JournalEntry
 from target_dynamics_bc.client import DynamicsClient
 from target_dynamics_bc.mappers.journal_entry_schema_mapper import JournalEntrySchemaMapper
 from target_dynamics_bc.sinks.base_sinks import DynamicsBaseBatchSinkSingleUpsert
@@ -9,6 +10,8 @@ from target_dynamics_bc.utils import DuplicatedRecord
 class JournalEntrySink(DynamicsBaseBatchSinkSingleUpsert):
     name = "JournalEntries"
     record_type = "Journals"
+    unified_schema = JournalEntry
+    auto_validate_unified_schema = True
 
     def preprocess_batch(self, records: List[Dict]):
         # fetch existing Journals
