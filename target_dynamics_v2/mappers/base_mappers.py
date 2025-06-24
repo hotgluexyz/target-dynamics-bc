@@ -152,8 +152,7 @@ class BaseMapper:
 
         if found_currency:
             currency_info = {
-                "currencyId": found_currency["id"],
-                "currencyCode": found_currency["code"]
+                "currencyId": found_currency["id"]
             }
         elif currency_code:
             currency_info = { "currencyCode": currency_code }
