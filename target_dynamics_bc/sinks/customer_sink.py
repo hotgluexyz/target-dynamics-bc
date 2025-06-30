@@ -1,5 +1,6 @@
 from typing import List
 
+from hotglue_models_accounting.accounting import Customer
 from target_dynamics_bc.client import DynamicsClient
 from target_dynamics_bc.mappers.customer_schema_mapper import CustomerSchemaMapper
 from target_dynamics_bc.sinks.base_sinks import DynamicsBaseBatchSinkBatchUpsert
@@ -7,6 +8,8 @@ from target_dynamics_bc.sinks.base_sinks import DynamicsBaseBatchSinkBatchUpsert
 class CustomerSink(DynamicsBaseBatchSinkBatchUpsert):
     name = "Customers"
     record_type = "Customers"
+    unified_schema = Customer
+    auto_validate_unified_schema = True
 
     def preprocess_batch(self, records: List[dict]):
         # fetch reference data related to existing customers
