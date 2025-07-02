@@ -13,7 +13,7 @@ license = "Apache 2.0"
 python = "<3.11,>=3.7.1"
 requests = "^2.25.1"
 singer-sdk = "^0.9.0"
-target-hotglue = { git = "https://gitlab.com/hotglue/target-hotglue-sdk.git", rev = "feature/HGI-8102-2" }
+target-hotglue = { git = "https://gitlab.com/hotglue/target-hotglue-sdk.git", rev = "main" }
 hotglue-models-accounting = { git = "https://gitlab.com/hotglue/hotglue-models-accounting.git", rev = "v2" }
 
 [tool.poetry.dev-dependencies]
