@@ -12,6 +12,7 @@ class ItemSink(DynamicsBaseBatchSinkBatchUpsert):
         # fetch reference data related to existing items
         filter_mappings = [
             {"field_from": "id", "field_to": "id", "should_quote": False},
+            {"field_from": "number", "field_to": "number", "should_quote": True},
             {"field_from": "displayName", "field_to": "displayName", "should_quote": True}
         ]
 
