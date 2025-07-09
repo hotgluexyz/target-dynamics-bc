@@ -11,6 +11,7 @@ from target_dynamics_v2.sinks.bill_sink import BillSink
 from target_dynamics_v2.sinks.customer_sink import CustomerSink
 from target_dynamics_v2.sinks.journal_entry_sink import JournalEntrySink
 from target_dynamics_v2.sinks.vendor_sink import VendorSink
+from target_dynamics_v2.sinks.item_sink import ItemSink
 from target_dynamics_v2.utils import ReferenceData, DimensionDefinitionNotFound, InvalidConfigurationError
 
 class TargetDynamicsV2(TargetHotglue):
@@ -19,7 +20,8 @@ class TargetDynamicsV2(TargetHotglue):
         CustomerSink,
         VendorSink,
         BillSink,
-        JournalEntrySink
+        JournalEntrySink,
+        ItemSink
     ]
     name = "target-dynamics-v2"
     def __init__(
