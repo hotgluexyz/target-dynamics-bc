@@ -10,8 +10,7 @@ class ItemSchemaMapper(BaseMapper):
     field_mappings = {
         "displayName": "displayName",
         "unitPrice": "unitPrice",
-        "email": "email",
-        "website": "website"
+        "type": "type"
     }
 
     def to_dynamics(self) -> dict:
