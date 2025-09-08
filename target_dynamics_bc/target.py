@@ -63,16 +63,15 @@ class TargetDynamicsV2(TargetHotglue):
 
     def get_tenant_config(self):
         snapshot_directory = self.config.get("snapshot_dir", None)
-        tenant_config = None
+        tenant_config = {}
 
         if snapshot_directory:
             config_path = os.path.join(snapshot_directory, "tenant-config.json")
             if not os.path.exists(config_path):
-                raise InvalidConfigurationError(f"tenant-config.json does not exist in the snapshot directory={snapshot_directory}")
-            with open(config_path) as f:
-                tenant_config = json.load(f)
-        else:
-            tenant_config = {}
+                self.logger.info(f"tenant-config.json does not exist in the snapshot directory={snapshot_directory}")
+            else:
+                with open(config_path) as f:
+                    tenant_config = json.load(f)
 
         if "dynamics-bc" not in tenant_config:
             tenant_config["dynamics-bc"] = {
