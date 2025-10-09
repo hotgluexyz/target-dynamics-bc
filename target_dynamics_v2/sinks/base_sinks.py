@@ -273,6 +273,8 @@ class DynamicsBaseBatchSinkSingleUpsert(DynamicsBaseBatchSink):
                 state = {"error": str(e), "record": json.dumps(raw_record, cls=HGJSONEncoder, sort_keys=True)}
                 if id := raw_record.get("id"):
                     state["id"] = id
+                if external_id := raw_record.get("externalId"):
+                    state["externalId"] = external_id
                 self.update_state(state)
 
         self.hash_records(records)
