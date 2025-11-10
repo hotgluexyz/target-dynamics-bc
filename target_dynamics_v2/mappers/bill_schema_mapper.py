@@ -1,7 +1,8 @@
 from target_dynamics_v2.mappers.attachment_schema_mapper import AttachmentSchemaMapper
 from target_dynamics_v2.mappers.base_mappers import BaseMapper
-from target_dynamics_v2.mappers.bill_expense_item_schema_mapper import BillExpenseItemSchemaMapper
+from target_dynamics_v2.mappers.bill_comment_schema_mapper import BillCommentSchemaMapper
 from target_dynamics_v2.mappers.bill_line_item_schema_mapper import BillLineItemSchemaMapper
+from target_dynamics_v2.mappers.bill_expense_item_schema_mapper import BillExpenseItemSchemaMapper
 
 
 class BillSchemaMapper(BaseMapper):
@@ -51,6 +52,11 @@ class BillSchemaMapper(BaseMapper):
             expense_item["subsidiaryId"] = self.company["id"]
             expense_line_payload = BillExpenseItemSchemaMapper(expense_item, self.sink, self.reference_data, existing_lines).to_netsuite()
             mapped_line_items.append(expense_line_payload)
+
+        comments = self.record.get("comments", [])
+        for comment in comments:
+            comment_payload = BillCommentSchemaMapper(comment, self.sink, self.reference_data, existing_lines).to_netsuite()
+            mapped_line_items.append(comment_payload)
 
         if mapped_line_items:
             payload["purchaseInvoiceLines"] = mapped_line_items
