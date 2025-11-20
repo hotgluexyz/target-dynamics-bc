@@ -1,7 +1,7 @@
 import abc
 import hashlib
 import json
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Any
 
 from singer_sdk.plugin_base import PluginBase
 from singer_sdk.sinks import BatchSink
@@ -81,7 +81,12 @@ class DynamicsBaseBatchSink(HotglueBaseSink, BatchSink):
                 self.logger.info(f"Duplicated record. Won't process it. Record: {record}")
 
         return unique_records
-
+    
+    def error_to_string(self, error: Any):
+        if isinstance(error, dict) and "message" in error:
+            return error.get("message")
+        else:
+            return str(error)
 
 class DynamicsBaseBatchSinkBatchUpsert(DynamicsBaseBatchSink):
     """
@@ -147,7 +152,7 @@ class DynamicsBaseBatchSinkBatchUpsert(DynamicsBaseBatchSink):
             if response["status"] >= 400:
                 state["success"] = False
                 state["record"] = json.dumps(record["records"], cls=HGJSONEncoder, sort_keys=True)
-                state["error"] = response.get("body", {}).get("error")
+                state["error"] = self.error_to_string(response.get("body", {}).get("error"))
             state_updates.append(state)
 
         return {"state_updates": state_updates}
@@ -176,7 +181,7 @@ class DynamicsBaseBatchSinkBatchUpsert(DynamicsBaseBatchSink):
         if last_response["status"] >= 400:
             state["success"] = False
             state["record"] = json.dumps(record["records"], cls=HGJSONEncoder, sort_keys=True)
-            state["error"] = last_response.get("body", {}).get("error")
+            state["error"] = self.error_to_string(last_response.get("body", {}).get("error"))
             return state
 
         state["success"] = True
