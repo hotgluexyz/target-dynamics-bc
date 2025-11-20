@@ -285,8 +285,6 @@ class DynamicsBaseBatchSinkSingleUpsert(DynamicsBaseBatchSink):
                 id, success, state = self.upsert_record(record)
             except  Exception as e:
                 state = {"error": str(e), "record": json.dumps(record, cls=HGJSONEncoder, sort_keys=True)}
-                if id := record.get("id"):
-                    state["id"] = id
                 self.update_state(state)
             else:
                 if success:
