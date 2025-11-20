@@ -152,7 +152,7 @@ class DynamicsBaseBatchSinkBatchUpsert(DynamicsBaseBatchSink):
             if response["status"] >= 400:
                 state["success"] = False
                 state["record"] = json.dumps(record["records"], cls=HGJSONEncoder, sort_keys=True)
-                state["error"] = self.error_to_string(response.get("body", {}).get("error"))
+                state["error"] = response.get("body", {}).get("error")
             state_updates.append(state)
 
         return {"state_updates": state_updates}
@@ -181,7 +181,7 @@ class DynamicsBaseBatchSinkBatchUpsert(DynamicsBaseBatchSink):
         if last_response["status"] >= 400:
             state["success"] = False
             state["record"] = json.dumps(record["records"], cls=HGJSONEncoder, sort_keys=True)
-            state["error"] = self.error_to_string(last_response.get("body", {}).get("error"))
+            state["error"] = last_response.get("body", {}).get("error")
             return state
 
         state["success"] = True
