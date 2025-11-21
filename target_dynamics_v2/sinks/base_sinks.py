@@ -1,7 +1,7 @@
 import abc
 import hashlib
 import json
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Any
 
 from singer_sdk.plugin_base import PluginBase
 from singer_sdk.sinks import BatchSink
@@ -81,7 +81,12 @@ class DynamicsBaseBatchSink(HotglueBaseSink, BatchSink):
                 self.logger.info(f"Duplicated record. Won't process it. Record: {record}")
 
         return unique_records
-
+    
+    def error_to_string(self, error: Any):
+        if isinstance(error, dict) and "message" in error:
+            return error.get("message")
+        else:
+            return str(error)
 
 class DynamicsBaseBatchSinkBatchUpsert(DynamicsBaseBatchSink):
     """
@@ -285,8 +290,6 @@ class DynamicsBaseBatchSinkSingleUpsert(DynamicsBaseBatchSink):
                 id, success, state = self.upsert_record(record)
             except  Exception as e:
                 state = {"error": str(e), "record": json.dumps(record, cls=HGJSONEncoder, sort_keys=True)}
-                if id := record.get("id"):
-                    state["id"] = id
                 self.update_state(state)
             else:
                 if success:

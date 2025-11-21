@@ -65,7 +65,7 @@ class DynamicsClient:
     
     def _validate_response(self, response: requests.Response) -> tuple[bool, str | None]:
         if response.status_code >= 400:
-            msg = response.get("error")
+            msg = self.error_to_string(response.get("error"))
             return False, msg
         else:
             return True, None

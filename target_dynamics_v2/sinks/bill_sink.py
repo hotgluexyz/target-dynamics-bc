@@ -90,7 +90,8 @@ class BillSink(DynamicsBaseBatchSinkSingleUpsert):
         if bill_upsert_response.get("status") not in [200, 201]:
             state["error"] = bill_upsert_response.get("body", {}).get("error")
             state["record"] = json.dumps(record, cls=HGJSONEncoder, sort_keys=True)
-            return bill_id, False, state
+            # Not send bill_id on error responses
+            return None, False, state
         
         bill_id = bill_upsert_response["body"]["id"]
 
@@ -110,11 +111,11 @@ class BillSink(DynamicsBaseBatchSinkSingleUpsert):
                     state["record"] = json.dumps(record, cls=HGJSONEncoder, sort_keys=True)
                     if not is_update:
                         self.delete_bill(bill_id, company_id)
-                    return bill_id, False, state
+                    return None, False, state
         
+        bill_lines_dimensions = []
         if bill_lines:
             # create/update lines       
-            bill_lines_dimensions = []
             bill_lines_upsert_request_data = []
             url_params = {"parentId": bill_id}
             for index, bill_line in enumerate(bill_lines):
@@ -137,7 +138,7 @@ class BillSink(DynamicsBaseBatchSinkSingleUpsert):
                     state["record"] = json.dumps(record, cls=HGJSONEncoder, sort_keys=True)
                     if not is_update:
                         self.delete_bill(bill_id, company_id)
-                    return bill_id, False, state
+                    return None, False, state
             
     
     
@@ -171,7 +172,7 @@ class BillSink(DynamicsBaseBatchSinkSingleUpsert):
                     state["record"] = json.dumps(record, cls=HGJSONEncoder, sort_keys=True)
                     if not is_update:
                         self.delete_bill(bill_id, company_id)
-                    return bill_id, False, state
+                    return None, False, state
                 
 
         if attachments:
@@ -197,7 +198,7 @@ class BillSink(DynamicsBaseBatchSinkSingleUpsert):
                     state["record"] = json.dumps(record, cls=HGJSONEncoder, sort_keys=True)
                     if not is_update:
                         self.delete_bill(bill_id, company_id)
-                    return bill_id, False, state
+                    return None, False, state
                 attachment["payload"]["id"] = attachments_post_response["body"]["id"]
                 identified_attachments.append(attachment)
                 
@@ -213,7 +214,7 @@ class BillSink(DynamicsBaseBatchSinkSingleUpsert):
                     state["record"] = json.dumps(record, cls=HGJSONEncoder, sort_keys=True)
                     if not is_update:
                         self.delete_bill(bill_id, company_id)
-                    return bill_id, False, state
+                    return None, False, state
                 
 
         if is_update:
