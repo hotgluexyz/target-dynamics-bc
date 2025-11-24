@@ -157,7 +157,7 @@ class DynamicsClient:
         for response in batch_responses:
             success, error_message = self._validate_batch_response(response)
             if not success:
-                return success, error_message, []
+                return success, error_message, entities
             entities += response.get("body", {}).get("value", [])
         
         return True, None, entities
@@ -208,6 +208,8 @@ class DynamicsClient:
                     company_entities_mapping[company["id"]][filter_field_to] = []
 
                 if rec_value := record.get(filter_field_from):
+                    # escape odata string
+                    rec_value = DynamicsClient.escape_odata_string(rec_value)
                     if filter_field_should_quote:
                         rec_value = f"'{rec_value}'"
                     company_entities_mapping[company["id"]][filter_field_to].append(rec_value)
@@ -358,3 +360,10 @@ class DynamicsClient:
             request_params["request_id"] = request_id
 
         return request_params
+    
+    @staticmethod
+    def escape_odata_string(value: Optional[str]) -> str:
+        """Escape single quotes in OData string literals by doubling them."""
+        if value is None:
+            return ''
+        return str(value).replace("'", "''")
