@@ -29,11 +29,14 @@ class BillCommentSchemaMapper(BaseMapper):
     def _find_existing_record(self, reference_list):
         """Finds an existing record in the reference data by matching internal.
         """
-        for id, invoices in reference_list.items():
-            for invoice in invoices:
-                line_items = invoice.get("purchaseInvoiceLines", [])
-                comments = [x for x in line_items if x.get("lineType") == "Comment"]
-                matching_comment = next((comment for comment in comments if comment.get("description") == self.record.get("description")), None)
-                if matching_comment:
-                    return matching_comment
+
+        
+        existing_lines = self.existing_lines
+        if found_record := next(
+            (line for line in existing_lines 
+            if line.get("description") == self.record.get("description")
+            and line.get("lineType") == "Comment"), 
+            None):
+            return found_record
+        
         return None
