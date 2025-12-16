@@ -227,13 +227,13 @@ class DynamicsBaseBatchSinkBatchUpsert(DynamicsBaseBatchSink):
 
         non_atomic_responses = self.make_batch_request(non_atomic_records)
         result = self.handle_non_atomic_batch_response(non_atomic_responses, non_atomic_records, raw_records)
-        for state in result.get("state_updates", list()):
-            self.update_state(state)
+        for state, record in zip(result.get("state_updates", list()), non_atomic_records):
+            self.update_state(state, record=record)
 
         for atomic_record in atomic_records:
             atomic_responses = self.make_batch_request([atomic_record], transaction_type="atomic")
             state = self.handle_atomic_batch_response(atomic_responses, atomic_record, raw_records)
-            self.update_state(state)
+            self.update_state(state, record=atomic_record)
 
 
 class DynamicsBaseBatchSinkSingleUpsert(DynamicsBaseBatchSink):
@@ -295,7 +295,7 @@ class DynamicsBaseBatchSinkSingleUpsert(DynamicsBaseBatchSink):
                     state["id"] = id
                 if external_id:
                     state["externalId"] = external_id
-                self.update_state(state)
+                self.update_state(state, record=record)
             else:
                 if success:
                     self.logger.info(f"{self.name} processed id: {id}")
@@ -307,4 +307,4 @@ class DynamicsBaseBatchSinkSingleUpsert(DynamicsBaseBatchSink):
                 if external_id:
                     state["externalId"] = external_id
                 
-                self.update_state(state)
+                self.update_state(state, record=record)
