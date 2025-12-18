@@ -16,7 +16,8 @@ class BillSchemaMapper(BaseMapper):
         "billNumber": "vendorInvoiceNumber",
         "dueDate": "dueDate",
         "issueDate": "invoiceDate",
-        "postingDate": "postingDate"
+        "postingDate": "postingDate",
+        "whtTaxCode": "whtTaxCode"
     }
 
     def to_dynamics(self) -> dict:

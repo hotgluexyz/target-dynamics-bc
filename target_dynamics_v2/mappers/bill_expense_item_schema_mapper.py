@@ -8,6 +8,8 @@ class BillExpenseItemSchemaMapper(BaseMapper):
         "taxCode": "taxCode",
         "discount": "discountAmount",
         "amount": "unitCost",
+        "irpfTaxPercent": "irpfTaxPercent",
+        "irpfTaxAmount": "irpfTaxAmount"
     }
 
     def __init__(

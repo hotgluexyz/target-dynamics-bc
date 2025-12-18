@@ -46,7 +46,25 @@ class DynamicsClient:
         if headers:
             request_headers.update(headers)
 
-        url = self.url + endpoint
+        environment = self.config.get("environment_name")
+
+        def is_purchase_invoice_lines_request(req: dict) -> bool:
+            url_parts = req.get("url", "").split("/")
+            return (
+                req.get("method") == "POST"
+                and ("purchaseInvoiceLines" in url_parts or "purchaseInvoices" in url_parts)
+            )
+
+        if any(is_purchase_invoice_lines_request(r) for r in data.get("requests", [])):
+            base_url = (
+                f"https://api.businesscentral.dynamics.com/v2.0/"
+                f"{environment}/api/precoro/finance/v2.0/"
+            )
+            LOGGER.info(data)
+        else:
+            base_url = self.url
+        
+        url = base_url + endpoint
         request_params = params or {}
 
         request = self.get_auth()
@@ -113,7 +131,7 @@ class DynamicsClient:
                 data["id"] = request_id
 
             request_data["requests"].append(data)
-
+            # LOGGER.info(request_data)
         response = self._make_request("$batch", "POST", data=request_data, headers=headers)
         responses = response.json().get("responses", [])
         return responses
