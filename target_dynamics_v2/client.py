@@ -55,7 +55,7 @@ class DynamicsClient:
                 and ("purchaseInvoiceLines" in url_parts or "purchaseInvoices" in url_parts)
             )
 
-        if any(is_purchase_invoice_lines_request(r) for r in data.get("requests", [])):
+        if isinstance(data, dict) and any(is_purchase_invoice_lines_request(r) for r in data.get("requests", [])):
             base_url = (
                 f"https://api.businesscentral.dynamics.com/v2.0/"
                 f"{environment}/api/precoro/finance/v2.0/"
