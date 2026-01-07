@@ -42,6 +42,10 @@ class DynamicsClient:
         return self.auth(r)
     
     def _make_request(self, endpoint, method, data=None, params=None, headers=None, should_dump_json=True):
+        LOGGER.info("===============================")
+        LOGGER.info(f"Request data: {data}")
+        LOGGER.info("===============================")
+        
         request_headers = {"Content-Type": "application/json"}
         if headers:
             request_headers.update(headers)
@@ -51,22 +55,22 @@ class DynamicsClient:
         def is_purchase_invoice_lines_request(req: dict) -> bool:
             url_parts = req.get("url", "").split("/")
             return (
-                req.get("method") == "POST"
+                req.get("method") in {"POST", "PATCH"}
                 and ("purchaseInvoiceLines" in url_parts or "purchaseInvoices" in url_parts)
             )
 
+        # Only inspect batch metadata when the payload is a dict (e.g., batch requests).
         if isinstance(data, dict) and any(is_purchase_invoice_lines_request(r) for r in data.get("requests", [])):
             base_url = (
                 f"https://api.businesscentral.dynamics.com/v2.0/"
                 f"{environment}/api/precoro/finance/v2.0/"
             )
-            LOGGER.info(data)
+            LOGGER.info(f"Request data: {data}")
         else:
             base_url = self.url
         
         url = base_url + endpoint
         request_params = params or {}
-
         request = self.get_auth()
         request.headers.update(request_headers)
         
