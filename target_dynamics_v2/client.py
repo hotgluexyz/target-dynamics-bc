@@ -51,13 +51,16 @@ class DynamicsClient:
             request_headers.update(headers)
 
         environment = self.config.get("environment_name")
-
+            
         def is_purchase_invoice_lines_request(req: dict) -> bool:
-            url_parts = req.get("url", "").split("/")
-            return (
-                req.get("method") in {"POST", "PATCH"}
-                and ("purchaseInvoiceLines" in url_parts or "purchaseInvoices" in url_parts)
+            url = req.get("url", "")
+            method = req.get("method")
+            is_match = (
+                method in {"POST", "PATCH"}
+                and ("purchaseInvoiceLines" in url or "purchaseInvoices" in url)
             )
+            LOGGER.info(f"Checking request: Method={method}, URL={url} -> Is Custom API Match: {is_match}")
+            return is_match
 
         # Only inspect batch metadata when the payload is a dict (e.g., batch requests).
         if isinstance(data, dict) and any(is_purchase_invoice_lines_request(r) for r in data.get("requests", [])):
@@ -65,7 +68,7 @@ class DynamicsClient:
                 f"https://api.businesscentral.dynamics.com/v2.0/"
                 f"{environment}/api/precoro/finance/v2.0/"
             )
-            LOGGER.info(f"Request data: {data}")
+            LOGGER.info(f"Using custom API for this request")
         else:
             base_url = self.url
         
