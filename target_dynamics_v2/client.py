@@ -58,6 +58,7 @@ class DynamicsClient:
             is_match = (
                 method in {"POST", "PATCH"}
                 and ("purchaseInvoiceLines" in url or "purchaseInvoices" in url)
+                and "dimensionSetLines" not in url
             )
             LOGGER.info(f"Checking request: Method={method}, URL={url} -> Is Custom API Match: {is_match}")
             return is_match
