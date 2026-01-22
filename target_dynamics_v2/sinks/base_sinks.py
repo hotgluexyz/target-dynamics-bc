@@ -204,6 +204,7 @@ class DynamicsBaseBatchSinkBatchUpsert(DynamicsBaseBatchSink):
         self.preprocess_batch(raw_records)
 
         records = []
+        remove_records = []
         for raw_record in raw_records:
             try:
                 # performs record mapping from unified to Dynamics
@@ -214,6 +215,10 @@ class DynamicsBaseBatchSinkBatchUpsert(DynamicsBaseBatchSink):
                 if id := raw_record.get("id"):
                     state["id"] = id
                 self.update_state(state)
+                remove_records.append(raw_record["externalId"])
+        
+        # remove failed records from raw_records or 
+        raw_records = [record for record in raw_records if record["externalId"] not in remove_records]
 
         self.hash_records(records)
         records = self.check_for_duplicated_records(records)
