@@ -42,9 +42,9 @@ class DynamicsClient:
         return self.auth(r)
     
     def _make_request(self, endpoint, method, data=None, params=None, headers=None, should_dump_json=True):
-        LOGGER.info("===============================")
-        LOGGER.info(f"Request data: {data}")
-        LOGGER.info("===============================")
+        LOGGER.debug("===============================")
+        LOGGER.debug(f"Request data: {data}")
+        LOGGER.debug("===============================")
         
         request_headers = {"Content-Type": "application/json"}
         if headers:
@@ -68,7 +68,6 @@ class DynamicsClient:
                 f"https://api.businesscentral.dynamics.com/v2.0/"
                 f"{environment}/api/precoro/finance/v2.0/"
             )
-            LOGGER.info(f"Using custom API for this request")
         else:
             base_url = self.url
         
