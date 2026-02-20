@@ -9,7 +9,8 @@ class BillExpenseItemSchemaMapper(BaseMapper):
         "discount": "discountAmount",
         "amount": "unitCost",
         "irpfTaxPercent": "irpfTaxPercent",
-        "irpfTaxAmount": "irpfTaxAmount"
+        "irpfTaxAmount": "irpfTaxAmount",
+        "quantity": "quantity"
     }
 
     def __init__(
@@ -29,7 +30,6 @@ class BillExpenseItemSchemaMapper(BaseMapper):
             **self._map_location(),
             **self._map_dimension_set_lines(),
             "lineType": "Account",
-            "quantity": 1
         }
 
         self._map_fields(payload)
