@@ -37,10 +37,10 @@ class JournalEntrySchemaMapper(BaseMapper):
     def _validate_journal_entry_number(self):
         journal_entry_number = self.record.get("journalEntryNumber")
         if not journal_entry_number:
-            raise MissingField(f"The required field 'externalId' was not provided")
+            raise MissingField(f"The required field 'journalEntryNumber' was not provided")
 
         if len(journal_entry_number) > 20:
-            raise InvalidInputError(f"The length of externalId={journal_entry_number} should be less or equal to 20.")
+            raise InvalidInputError(f"The length of journalEntryNumber={journal_entry_number} should be less or equal to 20.")
 
     def _validate_transaction_date(self):
         if not self.record.get("transactionDate"):
