@@ -40,7 +40,7 @@ class JournalEntrySchemaMapper(BaseMapper):
             raise MissingField(f"The required field 'journalEntryNumber' was not provided")
 
         if len(journal_entry_number) > 20:
-            raise InvalidInputError(f"The length of journalEntryNumber={journal_entry_number} should be less or equal to 20.")
+            raise InvalidInputError(f"The length of journalEntryNumber={journal_entry_number} is too long. The value must be less than or equal to 20 characters.")
 
     def _validate_transaction_date(self):
         if not self.record.get("transactionDate"):
