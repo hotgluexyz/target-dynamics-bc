@@ -42,7 +42,8 @@ class BillPaymentSchemaMapper(BaseMapper):
         payment_journal_id = payment_journal["journalId"]
 
         for existing_record_pk_mapping in self.existing_record_pk_mappings:
-            if record_id := self.record.get(existing_record_pk_mapping["record_field"]):
+            record_id = self.record.get(existing_record_pk_mapping["record_field"])
+            if record_id:
                 found_record = next(
                     (dynamics_record for dynamics_record in existing_entities_in_dynamics
                     if dynamics_record[existing_record_pk_mapping["dynamics_field"]] == record_id
@@ -70,21 +71,24 @@ class BillPaymentSchemaMapper(BaseMapper):
         found_bill = None
         bill_reference_data = self.reference_data.get("Bills", {}).get(self.company["id"], [])
 
-        if bill_id := self.record.get("billId"):
+        bill_id = self.record.get("billId")
+        if bill_id:
             found_bill = next(
                 (bill for bill in bill_reference_data
                 if bill["id"] == bill_id),
                 None
             )
 
-        if (bill_number := self.record.get("billNumber")) and not found_bill:
+        bill_number = self.record.get("billNumber")
+        if bill_number and not found_bill:
             found_bill = next(
                 (bill for bill in bill_reference_data
                 if bill["vendorInvoiceNumber"] == bill_number),
                 None
             )
 
-        if (bill_invoice_number := self.record.get("billExternalId")) and not found_bill:
+        bill_invoice_number = self.record.get("billExternalId")
+        if bill_invoice_number and not found_bill:
             found_bill = next(
                 (bill for bill in bill_reference_data
                 if bill["vendorInvoiceNumber"] == bill_invoice_number),

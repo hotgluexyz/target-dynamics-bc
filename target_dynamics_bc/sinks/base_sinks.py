@@ -1,7 +1,7 @@
 import abc
 import hashlib
 import json
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 
 from singer_sdk.plugin_base import PluginBase
 from singer_sdk.sinks import BatchSink
@@ -130,7 +130,8 @@ class DynamicsBaseBatchSinkBatchUpsert(DynamicsBaseBatchSink):
 
             record = records[index]
             raw_record = raw_records[record["raw_record_index"]]
-            if external_id := raw_record.get("externalId"):
+            external_id = raw_record.get("externalId")
+            if external_id:
                 state["externalId"] = external_id
 
             if response["status"] in [200, 201]:
@@ -166,7 +167,8 @@ class DynamicsBaseBatchSinkBatchUpsert(DynamicsBaseBatchSink):
         last_response = responses[-1]
 
         raw_record = raw_records[record["raw_record_index"]]
-        if external_id := raw_record.get("externalId"):
+        external_id = raw_record.get("externalId")
+        if external_id:
             state["externalId"] = external_id
 
         if last_response["status"] >= 400:
@@ -205,9 +207,11 @@ class DynamicsBaseBatchSinkBatchUpsert(DynamicsBaseBatchSink):
                 records.append(record)
             except Exception as e:
                 state = {"success": False, "error": str(e)}
-                if id := raw_record.get("id"):
-                    state["id"] = id
-                if external_id := raw_record.get("externalId"):
+                record_id = raw_record.get("id")
+                if record_id:
+                    state["id"] = record_id
+                external_id = raw_record.get("externalId")
+                if external_id:
                     state["externalId"] = external_id
 
                 self.update_state(state)
@@ -247,7 +251,7 @@ class DynamicsBaseBatchSinkSingleUpsert(DynamicsBaseBatchSink):
     """
 
     @abc.abstractmethod
-    def upsert_record(self, record: Dict) -> tuple[str, bool, Dict]:
+    def upsert_record(self, record: Dict) -> Tuple[str, bool, Dict]:
         """
         Performs the upserting of the record in Dynamics
         """
@@ -277,10 +281,12 @@ class DynamicsBaseBatchSinkSingleUpsert(DynamicsBaseBatchSink):
                 records.append(record)
             except Exception as e:
                 state = {"success": False, "error": str(e)}
-                if id := raw_record.get("id"):
-                    state["id"] = id
-                if externalId := raw_record.get("externalId"):
-                    state["externalId"] = externalId
+                record_id = raw_record.get("id")
+                if record_id:
+                    state["id"] = record_id
+                external_id = raw_record.get("externalId")
+                if external_id:
+                    state["externalId"] = external_id
                 self.update_state(state)
 
         for record in records:
@@ -291,8 +297,9 @@ class DynamicsBaseBatchSinkSingleUpsert(DynamicsBaseBatchSink):
                 id, success, state = self.upsert_record(record)
             except  Exception as e:
                 state = {"success": False, "error": str(e)}
-                if id := record.get("id"):
-                    state["id"] = id
+                record_id = record.get("id")
+                if record_id:
+                    state["id"] = record_id
                 if external_id:
                     state["externalId"] = external_id
                 self.update_state(state, record=record)

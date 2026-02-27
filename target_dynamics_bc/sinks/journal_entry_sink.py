@@ -1,4 +1,4 @@
-from typing import Dict, List
+from typing import Dict, List, Tuple
 
 from hotglue_models_accounting.accounting import JournalEntry
 from target_dynamics_bc.client import DynamicsClient
@@ -32,12 +32,13 @@ class JournalEntrySink(DynamicsBaseBatchSinkSingleUpsert):
         # perform the mapping
         return JournalEntrySchemaMapper(record, self, self.reference_data).to_dynamics()
     
-    def upsert_record(self, record: Dict) -> tuple[str, bool, Dict]:
+    def upsert_record(self, record: Dict) -> Tuple[str, bool, Dict]:
         state = {}
 
         payload = record["payload"]
 
-        if existing_record_id := payload.get("id"):
+        existing_record_id = payload.get("id")
+        if existing_record_id:
             raise DuplicatedRecord(f"Found an existing Journal with id={existing_record_id}. Skipping it.")
 
         company_id = record.get("company_id")

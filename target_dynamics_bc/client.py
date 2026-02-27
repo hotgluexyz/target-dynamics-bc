@@ -3,7 +3,7 @@ import requests
 
 from target_dynamics_bc.mappers.base_mappers import BaseMapper
 from target_hotglue.common import HGJSONEncoder
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 import singer
 
 
@@ -63,14 +63,14 @@ class DynamicsClient:
             verify=True
         )
     
-    def _validate_response(self, response: requests.Response) -> tuple[bool, str | None]:
+    def _validate_response(self, response: requests.Response) -> Tuple[bool, Optional[str]]:
         if response.status_code >= 400:
             msg = response.get("error")
             return False, msg
         else:
             return True, None
         
-    def _validate_batch_response(self, response: dict) -> tuple[bool, str | None]:
+    def _validate_batch_response(self, response: dict) -> Tuple[bool, Optional[str]]:
         if response["status"] >= 400:
             msg = response.get("body", {}).get("error")
             return False, msg
@@ -109,7 +109,8 @@ class DynamicsClient:
                 },
                 "body": request.get("body", {})
             }
-            if request_id := request.get("request_id"):
+            request_id = request.get("request_id")
+            if request_id:
                 data["id"] = request_id
 
             request_data["requests"].append(data)
@@ -207,7 +208,8 @@ class DynamicsClient:
                 if filter_field_to not in company_entities_mapping[company["id"]]:
                     company_entities_mapping[company["id"]][filter_field_to] = []
 
-                if rec_value := record.get(filter_field_from):
+                rec_value = record.get(filter_field_from)
+                if rec_value:
                     # escape odata string
                     rec_value = DynamicsClient.escape_odata_string(rec_value)
                     if filter_field_should_quote:
@@ -261,7 +263,8 @@ class DynamicsClient:
                 if filter_field_to not in company_entities_mapping[company["id"]]:
                     company_entities_mapping[company["id"]][filter_field_to] = []
 
-                if rec_value := record.get(filter_field_from):
+                rec_value = record.get(filter_field_from)
+                if rec_value:
                     if filter_field_should_quote:
                         rec_value = f"'{rec_value}'"
                     company_entities_mapping[company["id"]][filter_field_to].append(rec_value)
@@ -299,7 +302,8 @@ class DynamicsClient:
                 "method": "POST"
             }
 
-            if default_dimension_id := default_dimension.pop("id", None):
+            default_dimension_id = default_dimension.pop("id", None)
+            if default_dimension_id:
                 request_params = {
                     "url": f"{endpoint}({default_dimension_id})",
                     "method": "PATCH"
