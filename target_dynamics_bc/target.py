@@ -53,7 +53,6 @@ class TargetDynamicsV2(TargetHotglue):
 
     def validate_dimensions_mapping(self, dimensions_mapping: dict):
         # for every company check if the dimension exists
-        print(f"Companies: {self.reference_data['companies']}")
         for company in self.reference_data["companies"]:
             self.logger.info(f"Validating field -> dimension mapping for companyId={company['id']}")
             for dimension_name in dimensions_mapping.values():
