@@ -28,7 +28,11 @@ class DynamicsClient:
         "purchaseInvoiceLines": "companies({companyId})/purchaseInvoices({parentId})/purchaseInvoiceLines",
         "Journals": "companies({companyId})/journals",
         "Attachments": "companies({companyId})/attachments",
-        "AttachmentsContent": "companies({companyId})/attachments(id={parentId})/attachmentContent"
+        "AttachmentsContent": "companies({companyId})/attachments(id={parentId})/attachmentContent",
+        "purchaseCreditMemos": "companies({companyId})/purchaseCreditMemos",
+        "purchaseCreditMemosDimensionSetLines": "companies({companyId})/purchaseCreditMemos({entityId})/dimensionSetLines",
+        "purchaseCreditMemoLinesDimensionSetLines": "companies({companyId})/purchaseCreditMemoLines({entityId})/dimensionSetLines",
+        "purchaseCreditMemoLines": "companies({companyId})/purchaseCreditMemos({parentId})/purchaseCreditMemoLines",
     }
 
     def __init__(self, target) -> None:

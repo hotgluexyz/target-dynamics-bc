@@ -2,7 +2,7 @@ from target_dynamics_v2.mappers.attachment_schema_mapper import AttachmentSchema
 from target_dynamics_v2.mappers.base_mappers import BaseMapper
 from target_dynamics_v2.mappers.bill_comment_schema_mapper import BillCommentSchemaMapper
 from target_dynamics_v2.mappers.credit_memo_line_item_schema_mapper import CreditMemoLineItemSchemaMapper
-from target_dynamics_v2.mappers.bill_expense_item_schema_mapper import BillExpenseItemSchemaMapper
+from target_dynamics_v2.mappers.credit_memo_expense_item_schema_mapper import CreditMemoExpenseItemSchemaMapper
 
 
 class CreditMemoSchemaMapper(BaseMapper):
@@ -52,7 +52,7 @@ class CreditMemoSchemaMapper(BaseMapper):
         expense_items = self.record.get("expenses", [])
         for expense_item in expense_items:
             expense_item["subsidiaryId"] = self.company["id"]
-            expense_line_payload = BillExpenseItemSchemaMapper(expense_item, self.sink, self.reference_data, existing_lines).to_netsuite()
+            expense_line_payload = CreditMemoExpenseItemSchemaMapper(expense_item, self.sink, self.reference_data, existing_lines).to_netsuite()
             mapped_line_items.append(expense_line_payload)
 
         comments = self.record.get("comments", [])
