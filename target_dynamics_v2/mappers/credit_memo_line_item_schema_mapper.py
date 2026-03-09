@@ -4,6 +4,7 @@ class CreditMemoLineItemSchemaMapper(BaseMapper):
     name = "CreditMemoLines"
     field_mappings = {
         "externalId": "sequence",
+        "issueDate": "creditMemoDate",
         "description": "description",
         "taxCode": "taxCode",
         "discount": "discountAmount",
