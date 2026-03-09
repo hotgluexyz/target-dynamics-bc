@@ -42,7 +42,8 @@ class BillLineItemSchemaMapper(BaseMapper):
         
         found_record = None
 
-        if record_external_id := self.record.get("externalId"):
+        record_external_id = self.record.get("externalId")
+        if record_external_id:
             found_record = next(
                 (line for line in self.existing_lines
                 if str(line["sequence"]) == record_external_id),
@@ -50,7 +51,9 @@ class BillLineItemSchemaMapper(BaseMapper):
             )
 
         record_item = self._map_item()
-        if (record_item_id := record_item.get("itemId")) and (record_description := self.record.get("description")):
+        record_item_id = record_item.get("itemId")
+        record_description = self.record.get("description")
+        if record_item_id and record_description:
             found_record = next(
                 (line for line in self.existing_lines
                 if line["description"] == record_description and line["itemId"] == record_item_id),
@@ -65,21 +68,24 @@ class BillLineItemSchemaMapper(BaseMapper):
 
         items_reference_data = self.reference_data.get("Items", {}).get(self.company["id"], [])
 
-        if item_id := self.record.get("itemId"):
+        item_id = self.record.get("itemId")
+        if item_id:
             found_item = next(
                 (item for item in items_reference_data
                 if item["id"] == item_id),
                 None
             )
 
-        if (item_external_id := self.record.get("itemNumber")) and not found_item:
+        item_external_id = self.record.get("itemNumber")
+        if item_external_id and not found_item:
             found_item = next(
                 (item for item in items_reference_data
                 if item["number"] == item_external_id),
                 None
             )
 
-        if (item_name := self.record.get("itemExternalName")) and not found_item:
+        item_name = self.record.get("itemExternalName")
+        if item_name and not found_item:
             found_item = next(
                 (item for item in items_reference_data
                 if item["displayName"] == item_name),

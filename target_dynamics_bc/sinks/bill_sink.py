@@ -1,4 +1,4 @@
-from typing import Dict, List
+from typing import Dict, List, Tuple
 
 from hotglue_models_accounting.accounting import Bill
 from target_dynamics_bc.client import DynamicsClient
@@ -73,7 +73,7 @@ class BillSink(DynamicsBaseBatchSinkSingleUpsert):
         # perform the mapping
         return BillSchemaMapper(record, self, self.reference_data).to_dynamics()
 
-    def upsert_record(self, record: Dict) -> tuple[str, bool, Dict]:
+    def upsert_record(self, record: Dict) -> Tuple[str, bool, Dict]:
         state = {}
         payload = record["payload"]
         
@@ -127,7 +127,8 @@ class BillSink(DynamicsBaseBatchSinkSingleUpsert):
         for index, bill_line in enumerate(bill_lines):
             bill_line_id = bill_line.pop("id", None)
             request_id = bill_line_id or f"temp_{index}"
-            if bill_line_dimensions := bill_line.pop("dimensionSetLines", []):
+            bill_line_dimensions = bill_line.pop("dimensionSetLines", [])
+            if bill_line_dimensions:
                 bill_lines_dimensions.append({
                     "request_id": request_id,
                     "dimension_set_lines": bill_line_dimensions

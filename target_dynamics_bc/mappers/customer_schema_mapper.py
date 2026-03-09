@@ -43,7 +43,8 @@ class CustomerSchemaMapper(BaseMapper):
             return {}
         
         found = None
-        if payment_method := self.record.get("paymentMethod"):
+        payment_method = self.record.get("paymentMethod")
+        if payment_method:
             found = next(
                 (item for item in self.company.get("paymentMethods", []) if item["id"] == payment_method or item["code"] == payment_method or item["displayName"] == payment_method),
                 None

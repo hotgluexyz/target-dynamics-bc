@@ -23,14 +23,16 @@ class BaseMapper:
     def get_company_from_record(company_list: List[dict], record: dict) -> dict:
         company = None
 
-        if subsidiary_id := record.get("subsidiaryId"):
+        subsidiary_id = record.get("subsidiaryId")
+        if subsidiary_id:
             company = next(
                 (company for company in company_list
                 if company["id"] == subsidiary_id),
                 None
             )
 
-        if (subsidiary_name := record.get("subsidiaryName")) and company is None:
+        subsidiary_name = record.get("subsidiaryName")
+        if subsidiary_name and company is None:
             company = next(
                 (company for company in company_list
                 if company["name"] == subsidiary_name),
@@ -48,7 +50,8 @@ class BaseMapper:
         existing_entities_in_dynamics = reference_list.get(self.company["id"], [])
 
         for existing_record_pk_mapping in self.existing_record_pk_mappings:
-            if record_id := self.record.get(existing_record_pk_mapping["record_field"]):
+            record_id = self.record.get(existing_record_pk_mapping["record_field"])
+            if record_id:
                 found_record = next(
                     (dynamics_record for dynamics_record in existing_entities_in_dynamics
                     if dynamics_record[existing_record_pk_mapping["dynamics_field"]] == record_id),
@@ -72,7 +75,8 @@ class BaseMapper:
         """Extracts phone numbers in Dynamics format."""
         phone = {}
 
-        if phone_numbers := self.record.get("phoneNumbers", []):
+        phone_numbers = self.record.get("phoneNumbers", [])
+        if phone_numbers:
             found_record = next(
                 (phone_number for phone_number in phone_numbers
                 if phone_number["type"] == "unknown"),
@@ -90,7 +94,8 @@ class BaseMapper:
         """Extracts addresses to Dynamics format."""
         address_info = {}
 
-        if addresses := self.record.get("addresses", []):
+        addresses = self.record.get("addresses", [])
+        if addresses:
             found_record = next(
                 (address for address in addresses
                 if address["addressType"] == "shipping"),
@@ -117,21 +122,24 @@ class BaseMapper:
 
         found_currency = None
 
-        if currency_id := self.record.get("currencyId"):
+        currency_id = self.record.get("currencyId")
+        if currency_id:
             found_currency = next(
                 (currency for currency in self.company["currencies"]
                 if currency["id"] == currency_id),
                 None
             )
 
-        if (currency_code := self.record.get("currency")) and not found_currency:
+        currency_code = self.record.get("currency")
+        if currency_code and not found_currency:
             found_currency = next(
                 (currency for currency in self.company["currencies"]
                 if currency["code"] == currency_code),
                 None
             )
 
-        if (currency_name := self.record.get("currencyName")) and not found_currency:
+        currency_name = self.record.get("currencyName")
+        if currency_name and not found_currency:
             found_currency = next(
                 (currency for currency in self.company["currencies"]
                 if currency["displayName"] == currency_name),
@@ -172,22 +180,25 @@ class BaseMapper:
 
     def _get_dimension_value(self, dimension: dict, value_id: str, value_code: str, value_display_name: str):
         """Find dimension value by looking for dimension id, code or displayName"""
-        if found_dimension_value := next(
+        found_dimension_value = next(
             (dimension_value for dimension_value in dimension.get("dimensionValues", []) if dimension_value["id"] == value_id),
             None
-        ):
+        )
+        if found_dimension_value:
             return found_dimension_value
         
-        if found_dimension_value := next(
+        found_dimension_value = next(
             (dimension_value for dimension_value in dimension.get("dimensionValues", []) if dimension_value["code"] == value_code),
             None
-        ):
+        )
+        if found_dimension_value:
             return found_dimension_value
         
-        if found_dimension_value := next(
+        found_dimension_value = next(
             (dimension_value for dimension_value in dimension.get("dimensionValues", []) if dimension_value["displayName"] == value_display_name),
             None
-        ):
+        )
+        if found_dimension_value:
             return found_dimension_value
 
         if not found_dimension_value:
@@ -223,7 +234,8 @@ class BaseMapper:
                 "dimensionId": dimension_value["dimensionId"],
                 "dimensionValueId": dimension_value["id"]
             }
-            if existing_default_dimension := self._get_existing_default_dimension(dimension["id"]):
+            existing_default_dimension = self._get_existing_default_dimension(dimension["id"])
+            if existing_default_dimension:
                 default_dimension["id"] = existing_default_dimension["id"]
             default_dimensions.append(default_dimension)  
 
@@ -252,7 +264,8 @@ class BaseMapper:
                 "dimensionId": dimension_value["dimensionId"],
                 "dimensionValueId": dimension_value["id"]
             }
-            if existing_default_dimension := self._get_existing_default_dimension(dimension["id"]):
+            existing_default_dimension = self._get_existing_default_dimension(dimension["id"])
+            if existing_default_dimension:
                 default_dimension["id"] = existing_default_dimension["id"]
             default_dimensions.append(default_dimension)  
 
@@ -336,21 +349,24 @@ class BaseMapper:
         found_vendor = None
         vendors_reference_data = self.reference_data.get("Vendors", {}).get(self.company["id"], [])
 
-        if vendor_id := self.record.get("vendorId"):
+        vendor_id = self.record.get("vendorId")
+        if vendor_id:
             found_vendor = next(
                 (vendor for vendor in vendors_reference_data
                 if vendor["id"] == vendor_id),
                 None
             )
 
-        if (vendor_number := self.record.get("vendorNumber")) and not found_vendor:
+        vendor_number = self.record.get("vendorNumber")
+        if vendor_number and not found_vendor:
             found_vendor = next(
                 (vendor for vendor in vendors_reference_data
                 if vendor["number"] == vendor_number),
                 None
             )
 
-        if (vendor_name := self.record.get("vendorName")) and not found_vendor:
+        vendor_name = self.record.get("vendorName")
+        if vendor_name and not found_vendor:
             found_vendor = next(
                 (vendor for vendor in vendors_reference_data
                 if vendor["displayName"] == vendor_name),
@@ -377,14 +393,16 @@ class BaseMapper:
         found_journal = None
         payment_journal_reference_data = self.reference_data.get("VendorPaymentJournals", {}).get(self.company["id"], [])
 
-        if journal_id := self.record.get("journalId"):
+        journal_id = self.record.get("journalId")
+        if journal_id:
             found_journal = next(
                 (journal for journal in payment_journal_reference_data
                 if journal["id"] == journal_id),
                 None
             )
 
-        if (journal_code := self.record.get("journalExternalId")) and not found_journal:
+        journal_code = self.record.get("journalExternalId")
+        if journal_code and not found_journal:
             found_journal = next(
                 (journal for journal in payment_journal_reference_data
                 if journal["code"] == journal_code),
@@ -411,21 +429,24 @@ class BaseMapper:
         found_account = None
         accounts_reference_data = self.company["accounts"]
 
-        if account_id := self.record.get("accountId"):
+        account_id = self.record.get("accountId")
+        if account_id:
             found_account = next(
                 (account for account in accounts_reference_data
                 if account["id"] == account_id),
                 None
             )
 
-        if (account_number := self.record.get("accountNumber")) and not found_account:
+        account_number = self.record.get("accountNumber")
+        if account_number and not found_account:
             found_account = next(
                 (account for account in accounts_reference_data
                 if account["number"] == account_number),
                 None
             )
 
-        if (account_name := self.record.get("accountName")) and not found_account:
+        account_name = self.record.get("accountName")
+        if account_name and not found_account:
             found_account = next(
                 (account for account in accounts_reference_data
                 if account["displayName"] == account_name),
@@ -448,21 +469,24 @@ class BaseMapper:
         found_location = None
         locations_reference_data = self.company["locations"]
 
-        if location_id := self.record.get("locationId"):
+        location_id = self.record.get("locationId")
+        if location_id:
             found_location = next(
                 (location for location in locations_reference_data
                 if location["id"] == location_id),
                 None
             )
 
-        if (location_external_id := self.record.get("locationNumber")) and not found_location:
+        location_external_id = self.record.get("locationNumber")
+        if location_external_id and not found_location:
             found_location = next(
                 (location for location in locations_reference_data
                 if location["code"] == location_external_id),
                 None
             )
 
-        if (location_name := self.record.get("locationName")) and not found_location:
+        location_name = self.record.get("locationName")
+        if location_name and not found_location:
             found_location = next(
                 (location for location in locations_reference_data
                 if location["displayName"] == location_name),

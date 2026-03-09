@@ -1,4 +1,5 @@
-from typing import TypedDict, List
+from typing import List
+from typing_extensions import TypedDict
 
 class InvalidConfigurationError(Exception):
     pass
