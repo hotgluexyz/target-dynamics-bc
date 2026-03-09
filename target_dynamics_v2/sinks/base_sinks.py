@@ -209,6 +209,7 @@ class DynamicsBaseBatchSinkBatchUpsert(DynamicsBaseBatchSink):
                 record["raw_record_index"] = index
                 records.append(record)
             except Exception as e:
+                self.logger.exception(e)
                 state = {"success": False, "error": str(e), "record": json.dumps(raw_record, cls=HGJSONEncoder, sort_keys=True)}
                 if id := raw_record.get("id"):
                     state["id"] = id
@@ -277,6 +278,7 @@ class DynamicsBaseBatchSinkSingleUpsert(DynamicsBaseBatchSink):
                 record["externalId"] = raw_record.get("externalId")
                 records.append(record)
             except Exception as e:
+                self.logger.exception(e)
                 state = {"error": str(e), "record": json.dumps(raw_record, cls=HGJSONEncoder, sort_keys=True)}
                 if id := raw_record.get("id"):
                     state["id"] = id
