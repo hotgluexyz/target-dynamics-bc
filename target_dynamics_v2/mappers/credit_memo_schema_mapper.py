@@ -20,6 +20,7 @@ class CreditMemoSchemaMapper(BaseMapper):
         "vendorReturnReasonId": "vendorReturnReasonId",
         "invoiceId": "invoiceId",
         "invoiceNumber": "invoiceNumber",
+        "whtTaxCode": "whtTaxCode"
     }
 
     def to_dynamics(self) -> dict:
