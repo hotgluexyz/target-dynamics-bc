@@ -36,7 +36,7 @@ class DynamicsClient:
     }
 
     # Endpoints that require the custom Precoro API instead of the standard BC API.
-    _CUSTOM_API_ENDPOINTS = {"purchaseInvoiceLines", "purchaseInvoices"}
+    _CUSTOM_API_ENDPOINTS = {"purchaseInvoiceLines", "purchaseInvoices", "purchaseCreditMemos", "purchaseCreditMemoLines"}
     _CUSTOM_API_EXCLUDED = {"dimensionSetLines"}
     _CUSTOM_API_METHODS = {"POST", "PATCH"}
 

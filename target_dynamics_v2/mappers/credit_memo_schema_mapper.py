@@ -25,6 +25,9 @@ class CreditMemoSchemaMapper(BaseMapper):
     def to_dynamics(self) -> dict:
         self._validate_company()
 
+        if "creditMemoNumber" in self.record and self.record["creditMemoNumber"] is not None:
+            self.record["creditMemoNumber"] = str(self.record["creditMemoNumber"])
+
         payload = {
             **self._map_internal_id(),
             **self._map_vendor(required=True),
