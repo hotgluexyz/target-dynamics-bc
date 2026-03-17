@@ -312,8 +312,15 @@ class DynamicsClient:
         }
 
         if entity_id:
+            if record_type == "purchaseInvoiceLines":
+                url = f"companies({company_id})/purchaseInvoiceLines({entity_id})"
+            elif record_type == "purchaseCreditMemoLines":
+                url = f"companies({company_id})/purchaseCreditMemoLines({entity_id})"
+            else:
+                url = f"{endpoint}({entity_id})"
+                
             request_params = {
-                "url": f"{endpoint}({entity_id})",
+                "url": url,
                 "method": "PATCH"
             }
         
