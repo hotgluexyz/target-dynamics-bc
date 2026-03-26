@@ -52,10 +52,6 @@ class DynamicsClient:
         return self.auth(r)
     
     def _make_request(self, endpoint, method, data=None, params=None, headers=None, should_dump_json=True, base_url=None):
-        LOGGER.debug("===============================")
-        LOGGER.debug(f"Request data: {data}")
-        LOGGER.debug("===============================")
-        
         request_headers = {"Content-Type": "application/json"}
         if headers:
             request_headers.update(headers)
@@ -329,16 +325,18 @@ class DynamicsClient:
 
         return request_params
 
-    @classmethod
-    def _requires_custom_api(cls, requests_data: List[dict]) -> bool:
+    def _requires_custom_api(self, requests_data: List[dict]) -> bool:
         """Check if any request in a batch targets purchase invoice endpoints requiring the custom API."""
+        if not self.config.get("use_custom_api"):
+            return False
+
         for req in requests_data:
             url = req.get("url", "")
             method = req.get("method")
             if (
-                method in cls._CUSTOM_API_METHODS
-                and any(ep in url for ep in cls._CUSTOM_API_ENDPOINTS)
-                and not any(ex in url for ex in cls._CUSTOM_API_EXCLUDED)
+                method in self._CUSTOM_API_METHODS
+                and any(ep in url for ep in self._CUSTOM_API_ENDPOINTS)
+                and not any(ex in url for ex in self._CUSTOM_API_EXCLUDED)
             ):
                 LOGGER.info(f"Custom API match: Method={method}, URL={url}")
                 return True
