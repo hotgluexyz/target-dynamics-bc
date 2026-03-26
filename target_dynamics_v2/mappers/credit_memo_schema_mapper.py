@@ -1,27 +1,33 @@
 from target_dynamics_v2.mappers.attachment_schema_mapper import AttachmentSchemaMapper
 from target_dynamics_v2.mappers.base_mappers import BaseMapper
 from target_dynamics_v2.mappers.bill_comment_schema_mapper import BillCommentSchemaMapper
-from target_dynamics_v2.mappers.bill_line_item_schema_mapper import BillLineItemSchemaMapper
-from target_dynamics_v2.mappers.bill_expense_item_schema_mapper import BillExpenseItemSchemaMapper
+from target_dynamics_v2.mappers.credit_memo_line_item_schema_mapper import CreditMemoLineItemSchemaMapper
+from target_dynamics_v2.mappers.credit_memo_expense_item_schema_mapper import CreditMemoExpenseItemSchemaMapper
 
 
-class BillSchemaMapper(BaseMapper):
-    name = "Bills"
+class CreditMemoSchemaMapper(BaseMapper):
+    name = "CreditMemos"
     existing_record_pk_mappings = [
         {"record_field": "id", "dynamics_field": "id", "required_if_present": True},
         {"record_field": "transactionNumber", "dynamics_field": "number", "required_if_present": False}
     ]
 
     field_mappings = {
-        "billNumber": "vendorInvoiceNumber",
+        "creditMemoNumber": "number",
         "dueDate": "dueDate",
-        "issueDate": "invoiceDate",
+        "issueDate": "creditMemoDate",
         "postingDate": "postingDate",
+        "vendorReturnReasonId": "vendorReturnReasonId",
+        "invoiceId": "invoiceId",
+        "invoiceNumber": "invoiceNumber",
         "whtTaxCode": "whtTaxCode"
     }
 
     def to_dynamics(self) -> dict:
         self._validate_company()
+
+        if "creditMemoNumber" in self.record and self.record["creditMemoNumber"] is not None:
+            self.record["creditMemoNumber"] = str(self.record["creditMemoNumber"])
 
         payload = {
             **self._map_internal_id(),
@@ -32,25 +38,25 @@ class BillSchemaMapper(BaseMapper):
 
         self._map_fields(payload)
 
-        self._map_bill_line_items(payload)
+        self._map_credit_memo_line_items(payload)
         self._map_attachments(payload)
 
         return {"payload": payload, "company_id": self.company["id"]}
 
-    def _map_bill_line_items(self, payload):
+    def _map_credit_memo_line_items(self, payload):
         mapped_line_items = []
-        existing_lines = self.existing_record.get("purchaseInvoiceLines", []) if self.existing_record else []
+        existing_lines = self.existing_record.get("purchaseCreditMemoLines", []) if self.existing_record else []
 
         line_items = self.record.get("lineItems", [])
         for line_item in line_items:
             line_item["subsidiaryId"] = self.company["id"]
-            line_payload = BillLineItemSchemaMapper(line_item, self.sink, self.reference_data, existing_lines).to_netsuite()
+            line_payload = CreditMemoLineItemSchemaMapper(line_item, self.sink, self.reference_data, existing_lines).to_netsuite()
             mapped_line_items.append(line_payload)
-        
+
         expense_items = self.record.get("expenses", [])
         for expense_item in expense_items:
             expense_item["subsidiaryId"] = self.company["id"]
-            expense_line_payload = BillExpenseItemSchemaMapper(expense_item, self.sink, self.reference_data, existing_lines).to_netsuite()
+            expense_line_payload = CreditMemoExpenseItemSchemaMapper(expense_item, self.sink, self.reference_data, existing_lines).to_netsuite()
             mapped_line_items.append(expense_line_payload)
 
         comments = self.record.get("comments", [])
@@ -59,19 +65,17 @@ class BillSchemaMapper(BaseMapper):
             mapped_line_items.append(comment_payload)
 
         if mapped_line_items:
-            payload["purchaseInvoiceLines"] = mapped_line_items
-
+            payload["purchaseCreditMemoLines"] = mapped_line_items
 
     def _map_attachments(self, payload):
         attachments = self.record.get("attachments", [])
 
-        
         mapped_attachments = []
         for attachment in attachments:
             attachment_payload = AttachmentSchemaMapper({
                 "fileName": attachment,
                 "parentId": payload.get("id"),
-                "parentType": "Purchase Invoice",
+                "parentType": "Purchase Credit Memo",
                 "subsidiaryId": self.company["id"]
             }, self.sink, self.reference_data).to_dynamics()
             mapped_attachments.append(attachment_payload)
