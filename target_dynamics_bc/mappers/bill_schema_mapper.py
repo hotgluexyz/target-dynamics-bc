@@ -1,6 +1,7 @@
 from target_dynamics_bc.mappers.base_mappers import BaseMapper
 from target_dynamics_bc.mappers.bill_expense_item_schema_mapper import BillExpenseItemSchemaMapper
 from target_dynamics_bc.mappers.bill_line_item_schema_mapper import BillLineItemSchemaMapper
+from target_dynamics_bc.utils import RecordNotFound
 
 
 class BillSchemaMapper(BaseMapper):
@@ -8,7 +9,8 @@ class BillSchemaMapper(BaseMapper):
     existing_record_pk_mappings = [
         {"record_field": "id", "dynamics_field": "id", "required_if_present": True},
         {"record_field": "transactionNumber", "dynamics_field": "number", "required_if_present": False},
-        {"record_field": "billNumber", "dynamics_field": "vendorInvoiceNumber", "required_if_present": False}
+        {"record_field": "billNumber", "dynamics_field": "vendorInvoiceNumber", "required_if_present": False},
+        {"record_field": "vendorNumber", "dynamics_field": "vendorNumber", "required_if_present": False},
     ]
 
     field_mappings = {
@@ -17,6 +19,70 @@ class BillSchemaMapper(BaseMapper):
         "issueDate": "invoiceDate",
         "postingDate": "postingDate"
     }
+
+    def _resolve_vendor_id(self):
+        """Resolve the Dynamics vendor ID from the incoming record's vendor fields."""
+        vendors_reference_data = self.reference_data.get("Vendors", {}).get(self.company["id"], [])
+
+        vendor_id = self.record.get("vendorId")
+        if vendor_id:
+            found = next((v for v in vendors_reference_data if v["id"] == vendor_id), None)
+            if found:
+                return found["id"]
+
+        vendor_number = self.record.get("vendorNumber")
+        if vendor_number:
+            found = next((v for v in vendors_reference_data if v["number"] == vendor_number), None)
+            if found:
+                return found["id"]
+
+        vendor_name = self.record.get("vendorName")
+        if vendor_name:
+            found = next((v for v in vendors_reference_data if v["displayName"] == vendor_name), None)
+            if found:
+                return found["id"]
+
+        return None
+
+    def _find_existing_record(self, reference_list):
+        """Match existing bills by both invoice number AND vendor to prevent
+        cross-vendor overwrites when two vendors share the same invoice number."""
+        if self.company is None:
+            return None
+
+        existing_entities_in_dynamics = reference_list.get(self.company["id"], [])
+        resolved_vendor_id = self._resolve_vendor_id()
+
+        for existing_record_pk_mapping in self.existing_record_pk_mappings:
+            record_id = self.record.get(existing_record_pk_mapping["record_field"])
+            if not record_id:
+                continue
+
+            is_id_field = existing_record_pk_mapping["record_field"] == "id"
+
+            if is_id_field or not resolved_vendor_id:
+                found_record = next(
+                    (r for r in existing_entities_in_dynamics
+                     if r[existing_record_pk_mapping["dynamics_field"]] == record_id),
+                    None
+                )
+            else:
+                found_record = next(
+                    (r for r in existing_entities_in_dynamics
+                     if r[existing_record_pk_mapping["dynamics_field"]] == record_id
+                     and r.get("vendorId") == resolved_vendor_id),
+                    None
+                )
+
+            if existing_record_pk_mapping["required_if_present"] and found_record is None:
+                raise RecordNotFound(
+                    f"Record {existing_record_pk_mapping['record_field']}={record_id} not found Dynamics. Skipping it"
+                )
+
+            if found_record:
+                return found_record
+
+        return None
 
     def to_dynamics(self) -> dict:
         self._validate_company()
