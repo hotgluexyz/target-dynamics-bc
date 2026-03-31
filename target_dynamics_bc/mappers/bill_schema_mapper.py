@@ -20,30 +20,6 @@ class BillSchemaMapper(BaseMapper):
         "postingDate": "postingDate"
     }
 
-    def _resolve_vendor_id(self):
-        """Resolve the Dynamics vendor ID from the incoming record's vendor fields."""
-        vendors_reference_data = self.reference_data.get("Vendors", {}).get(self.company["id"], [])
-
-        vendor_id = self.record.get("vendorId")
-        if vendor_id:
-            found = next((v for v in vendors_reference_data if v["id"] == vendor_id), None)
-            if found:
-                return found["id"]
-
-        vendor_number = self.record.get("vendorNumber")
-        if vendor_number:
-            found = next((v for v in vendors_reference_data if v["number"] == vendor_number), None)
-            if found:
-                return found["id"]
-
-        vendor_name = self.record.get("vendorName")
-        if vendor_name:
-            found = next((v for v in vendors_reference_data if v["displayName"] == vendor_name), None)
-            if found:
-                return found["id"]
-
-        return None
-
     def _find_existing_record(self, reference_list):
         """Match existing bills by both invoice number AND vendor to prevent
         cross-vendor overwrites when two vendors share the same invoice number."""
@@ -51,7 +27,7 @@ class BillSchemaMapper(BaseMapper):
             return None
 
         existing_entities_in_dynamics = reference_list.get(self.company["id"], [])
-        resolved_vendor_id = self._resolve_vendor_id()
+        resolved_vendor_id = self._map_vendor(required=True).get("vendorId")
 
         for existing_record_pk_mapping in self.existing_record_pk_mappings:
             record_id = self.record.get(existing_record_pk_mapping["record_field"])
