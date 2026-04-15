@@ -27,8 +27,12 @@ class JournalEntryLineSchemaMapper(BaseMapper):
             raise InvalidFieldValue(f"'{entry_type}' is an invalid field value for 'entryType'. It should one of 'Credit' or 'Debit'")
 
         if entry_type == "Credit":
+            if self.record.get("creditAmount") is None:
+                raise InvalidFieldValue("Missing value for 'creditAmount' for a Credit entry type")
             amount = abs(self.record.get("creditAmount")) * -1.0
         else:
+            if self.record.get("debitAmount") is None:
+                raise InvalidFieldValue("Missing value for 'debitAmount' for a Debit entry type")
             amount = abs(self.record.get("debitAmount"))
 
         return {"amount": amount}
