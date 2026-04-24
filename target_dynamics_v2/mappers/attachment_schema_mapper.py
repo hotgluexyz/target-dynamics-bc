@@ -11,6 +11,11 @@ class AttachmentSchemaMapper(BaseMapper):
         {"record_field": "parentId", "dynamics_field": "parentId", "required_if_present": True},
     ]
 
+    PARENT_TYPE_REFERENCE_KEY = {
+        "Purchase Invoice": "Bills",
+        "Purchase Credit Memo": "CreditMemos",
+    }
+
     def __init__(
             self,
             record,
@@ -22,26 +27,27 @@ class AttachmentSchemaMapper(BaseMapper):
         self.input_path = sink.config.get("input_path", "")
         self.reference_data: ReferenceData = reference_data
         self.company = self._map_company()
-        self.existing_record = self._find_existing_record(reference_data.get("Bills"))
+        reference_key = self.PARENT_TYPE_REFERENCE_KEY.get(record.get("parentType"), "Bills")
+        self.existing_record = self._find_existing_record(reference_data.get(reference_key))
 
 
     def _find_existing_record(self, reference_list):
         """Finds an existing record in the reference data by matching internal.
         """
-        if self.company is None:
+        if self.company is None or reference_list is None:
             return None
         
-        existing_bills = reference_list.get(self.company["id"], [])
-        parent_bill = next(
-            (bill for bill in existing_bills if bill["id"] == self.record.get("parentId")),
+        existing_records = reference_list.get(self.company["id"], [])
+        parent_record = next(
+            (record for record in existing_records if record["id"] == self.record.get("parentId")),
             None
         )
 
-        if not parent_bill:
+        if not parent_record:
             return None
         
 
-        existing_attachments = parent_bill.get("attachments", [])
+        existing_attachments = parent_record.get("attachments", [])
         found_record = next(
             (attachment for attachment in existing_attachments
             if attachment["fileName"] == self.record.get("fileName")),

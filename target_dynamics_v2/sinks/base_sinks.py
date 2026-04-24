@@ -134,17 +134,13 @@ class DynamicsBaseBatchSinkBatchUpsert(DynamicsBaseBatchSink):
             state = {}
 
             record = records[index]
-            raw_record = raw_records[index]
-
-            if hash := record.pop("hash", None):
-                state["hash"] = hash
+            raw_record = raw_records[record["raw_record_index"]]
+            if external_id := raw_record.get("externalId"):
+                state["externalId"] = external_id
 
             if response["status"] in [200, 201]:
                 state["success"] = True
                 state["id"] = response.get("body", {}).get("id")
-                if raw_record.get("externalId"):
-                    state["externalId"] = raw_record.get("externalId")
-
 
             if response["status"] == 200:
                 state["is_updated"] = True
@@ -156,8 +152,8 @@ class DynamicsBaseBatchSinkBatchUpsert(DynamicsBaseBatchSink):
             state_updates.append(state)
 
         return {"state_updates": state_updates}
-    
-    def handle_atomic_batch_response(self, responses: List[dict], record: dict, raw_record: dict) -> dict:
+
+    def handle_atomic_batch_response(self, responses: List[dict], record: dict, raw_records: List[dict]) -> dict:
         """
         This method should return a dict with the state update
         
@@ -175,8 +171,9 @@ class DynamicsBaseBatchSinkBatchUpsert(DynamicsBaseBatchSink):
         first_response = responses[0]
         last_response = responses[-1]
 
-        if hash := record.pop("hash", None):
-            state["hash"] = hash
+        raw_record = raw_records[record["raw_record_index"]]
+        if external_id := raw_record.get("externalId"):
+            state["externalId"] = external_id
 
         if last_response["status"] >= 400:
             state["success"] = False
@@ -186,9 +183,6 @@ class DynamicsBaseBatchSinkBatchUpsert(DynamicsBaseBatchSink):
 
         state["success"] = True
         state["id"] = first_response.get("body", {}).get("id")
-
-        if raw_record.get("externalId"):
-            state["externalId"] = raw_record.get("externalId")
 
         if first_response["status"] == 200:
             state["is_updated"] = True
@@ -204,15 +198,24 @@ class DynamicsBaseBatchSinkBatchUpsert(DynamicsBaseBatchSink):
         self.preprocess_batch(raw_records)
 
         records = []
-        for raw_record in raw_records:
+        for index, raw_record in enumerate(raw_records):
             try:
+                record_hash = self.build_record_hash(raw_record)
+                # if the record is duplicated within this job run we skip it
+                if self.get_existing_state(record_hash):
+                    continue
                 # performs record mapping from unified to Dynamics
                 record = self.process_batch_record(raw_record)
+                record["raw_record_index"] = index
                 records.append(record)
             except Exception as e:
-                state = {"error": str(e), "record": json.dumps(raw_record, cls=HGJSONEncoder, sort_keys=True)}
+                self.logger.exception(e)
+                state = {"success": False, "error": str(e), "record": json.dumps(raw_record, cls=HGJSONEncoder, sort_keys=True)}
                 if id := raw_record.get("id"):
                     state["id"] = id
+                if external_id := raw_record.get("externalId"):
+                    state["externalId"] = external_id
+
                 self.update_state(state)
 
         self.hash_records(records)
@@ -233,12 +236,12 @@ class DynamicsBaseBatchSinkBatchUpsert(DynamicsBaseBatchSink):
 
         non_atomic_responses = self.make_batch_request(non_atomic_records)
         result = self.handle_non_atomic_batch_response(non_atomic_responses, non_atomic_records, raw_records)
-        for state in result.get("state_updates", list()):
-            self.update_state(state)
+        for state, record in zip(result.get("state_updates", list()), non_atomic_records):
+            self.update_state(state, record=record)
 
         for atomic_record, index in atomic_records:
             atomic_responses = self.make_batch_request([atomic_record], transaction_type="atomic")
-            state = self.handle_atomic_batch_response(atomic_responses, atomic_record, raw_records[index])
+            state = self.handle_atomic_batch_response(atomic_responses, atomic_record, raw_records)
             self.update_state(state)
 
 
@@ -275,6 +278,7 @@ class DynamicsBaseBatchSinkSingleUpsert(DynamicsBaseBatchSink):
                 record["externalId"] = raw_record.get("externalId")
                 records.append(record)
             except Exception as e:
+                self.logger.exception(e)
                 state = {"error": str(e), "record": json.dumps(raw_record, cls=HGJSONEncoder, sort_keys=True)}
                 if id := raw_record.get("id"):
                     state["id"] = id
