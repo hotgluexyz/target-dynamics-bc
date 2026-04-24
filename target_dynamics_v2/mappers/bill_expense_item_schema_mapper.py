@@ -10,7 +10,9 @@ class BillExpenseItemSchemaMapper(BaseMapper):
         "amount": "unitCost",
         "irpfTaxPercent": "irpfTaxPercent",
         "irpfTaxAmount": "irpfTaxAmount",
-        "quantity": "quantity"
+        "quantity": "quantity",
+        "vendorContractNumber": "vendorContractNumber",
+        "purchaseOrderNumber": "purchaseOrderNumber"
     }
 
     def __init__(
