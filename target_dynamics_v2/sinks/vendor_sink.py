@@ -63,7 +63,7 @@ class VendorSink(DynamicsBaseBatchSinkBatchUpsert):
             "records": records,
             "state_fields": {
                 "name": record.get("vendorName"),
-                "mapfield": self._get_output_currency(record, payload, mapped_record.company),
+                "mapField": self._get_output_currency(record, payload, mapped_record.company),
                 "companyId": mapped_record.company["id"],
             },
         }
