@@ -1,7 +1,7 @@
 from target_dynamics_v2.mappers.base_mappers import BaseMapper
 
-class BillExpenseItemSchemaMapper(BaseMapper):
-    name = "BillLines"
+class CreditMemoExpenseItemSchemaMapper(BaseMapper):
+    name = "CreditMemoLines"
     field_mappings = {
         "externalId": "sequence",
         "description": "description",
@@ -43,7 +43,7 @@ class BillExpenseItemSchemaMapper(BaseMapper):
         """
         if self.company is None:
             return None
-        
+
         found_record = None
 
         if record_external_id := self.record.get("externalId"):

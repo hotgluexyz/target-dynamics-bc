@@ -8,6 +8,7 @@ from target_hotglue.target import TargetHotglue
 
 from target_dynamics_v2.client import DynamicsClient
 from target_dynamics_v2.sinks.bill_sink import BillSink
+from target_dynamics_v2.sinks.credit_memo_sink import CreditMemoSink
 from target_dynamics_v2.sinks.customer_sink import CustomerSink
 from target_dynamics_v2.sinks.journal_entry_sink import JournalEntrySink
 from target_dynamics_v2.sinks.vendor_sink import VendorSink
@@ -20,6 +21,7 @@ class TargetDynamicsV2(TargetHotglue):
         CustomerSink,
         VendorSink,
         BillSink,
+        CreditMemoSink,
         JournalEntrySink,
         ItemSink
     ]

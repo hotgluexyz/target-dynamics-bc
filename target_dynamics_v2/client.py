@@ -11,6 +11,11 @@ from target_dynamics_v2.auth import DynamicsAuth
 
 LOGGER = singer.get_logger()
 
+
+class DynamicsRequestError(Exception):
+    pass
+
+
 class DynamicsClient:
     ref_request_endpoints = {
         "Companies": "companies",
@@ -28,27 +33,36 @@ class DynamicsClient:
         "purchaseInvoiceLines": "companies({companyId})/purchaseInvoices({parentId})/purchaseInvoiceLines",
         "Journals": "companies({companyId})/journals",
         "Attachments": "companies({companyId})/attachments",
-        "AttachmentsContent": "companies({companyId})/attachments(id={parentId})/attachmentContent"
+        "AttachmentsContent": "companies({companyId})/attachments(id={parentId})/attachmentContent",
+        "purchaseCreditMemos": "companies({companyId})/purchaseCreditMemos",
+        "purchaseCreditMemosDimensionSetLines": "companies({companyId})/purchaseCreditMemos({entityId})/dimensionSetLines",
+        "purchaseCreditMemoLinesDimensionSetLines": "companies({companyId})/purchaseCreditMemoLines({entityId})/dimensionSetLines",
+        "purchaseCreditMemoLines": "companies({companyId})/purchaseCreditMemos({parentId})/purchaseCreditMemoLines",
     }
+
+    # Endpoints that require the custom Precoro API instead of the standard BC API.
+    _CUSTOM_API_ENDPOINTS = {"purchaseInvoiceLines", "purchaseInvoices", "purchaseCreditMemos", "purchaseCreditMemoLines"}
+    _CUSTOM_API_EXCLUDED = {"dimensionSetLines"}
+    _CUSTOM_API_METHODS = {"POST", "PATCH"}
 
     def __init__(self, target) -> None:
         self.config = target.config
         environment = self.config.get("environment_name")
         self.url = self.config.get("full_url", f"https://api.businesscentral.dynamics.com/v2.0/{environment}/api/v2.0/")
+        self.custom_api_url = f"https://api.businesscentral.dynamics.com/v2.0/{environment}/api/precoro/finance/v2.0/"
         self.auth = DynamicsAuth(target)
 
     def get_auth(self):
         r = requests.Session()
         return self.auth(r)
     
-    def _make_request(self, endpoint, method, data=None, params=None, headers=None, should_dump_json=True):
+    def _make_request(self, endpoint, method, data=None, params=None, headers=None, should_dump_json=True, base_url=None):
         request_headers = {"Content-Type": "application/json"}
         if headers:
             request_headers.update(headers)
 
-        url = self.url + endpoint
+        url = (base_url or self.url) + endpoint
         request_params = params or {}
-
         request = self.get_auth()
         request.headers.update(request_headers)
         
@@ -62,10 +76,33 @@ class DynamicsClient:
             data=data,
             verify=True
         )
+
+    @staticmethod
+    def _summarize_response(response: requests.Response, max_length: int = 500) -> str:
+        content_type = response.headers.get("Content-Type", "unknown")
+        body = (response.text or "").strip()
+        if len(body) > max_length:
+            body = f"{body[:max_length]}..."
+        if not body:
+            body = "<empty body>"
+        return f"status={response.status_code}, content_type={content_type}, body={body}"
+
+    def _parse_json_response(self, response: requests.Response, context: str) -> dict:
+        try:
+            return response.json()
+        except requests.exceptions.JSONDecodeError as exc:
+            summary = self._summarize_response(response)
+            raise DynamicsRequestError(
+                f"{context} returned a non-JSON response: {summary}"
+            ) from exc
     
     def _validate_response(self, response: requests.Response) -> tuple[bool, str | None]:
         if response.status_code >= 400:
-            msg = self.error_to_string(response.get("error"))
+            try:
+                response_data = self._parse_json_response(response, "Dynamics API request")
+                msg = self.error_to_string(response_data.get("error"))
+            except DynamicsRequestError as exc:
+                msg = str(exc)
             return False, msg
         else:
             return True, None
@@ -114,8 +151,14 @@ class DynamicsClient:
 
             request_data["requests"].append(data)
 
-        response = self._make_request("$batch", "POST", data=request_data, headers=headers)
-        responses = response.json().get("responses", [])
+        base_url = self.custom_api_url if self._requires_custom_api(requests_data) else None
+        response = self._make_request("$batch", "POST", data=request_data, headers=headers, base_url=base_url)
+        if response.status_code >= 400:
+            summary = self._summarize_response(response)
+            raise DynamicsRequestError(f"Dynamics batch request failed: {summary}")
+
+        response_data = self._parse_json_response(response, "Dynamics batch request")
+        responses = response_data.get("responses", [])
         return responses
 
     def get_entities(self, record_type: str, url_params: Optional[dict] = {}, filters: Optional[Dict[str, List]] = {}, expand: str = None):
@@ -298,8 +341,15 @@ class DynamicsClient:
         }
 
         if entity_id:
+            if record_type == "purchaseInvoiceLines":
+                url = f"companies({company_id})/purchaseInvoiceLines({entity_id})"
+            elif record_type == "purchaseCreditMemoLines":
+                url = f"companies({company_id})/purchaseCreditMemoLines({entity_id})"
+            else:
+                url = f"{endpoint}({entity_id})"
+                
             request_params = {
-                "url": f"{endpoint}({entity_id})",
+                "url": url,
                 "method": "PATCH"
             }
         
@@ -307,6 +357,23 @@ class DynamicsClient:
             request_params["request_id"] = request_id
 
         return request_params
+
+    def _requires_custom_api(self, requests_data: List[dict]) -> bool:
+        """Check if any request in a batch targets purchase invoice endpoints requiring the custom API."""
+        if not self.config.get("use_custom_api"):
+            return False
+
+        for req in requests_data:
+            url = req.get("url", "")
+            method = req.get("method")
+            if (
+                method in self._CUSTOM_API_METHODS
+                and any(ep in url for ep in self._CUSTOM_API_ENDPOINTS)
+                and not any(ex in url for ex in self._CUSTOM_API_EXCLUDED)
+            ):
+                LOGGER.info(f"Custom API match: Method={method}, URL={url}")
+                return True
+        return False
 
     @staticmethod
     def escape_odata_string(value: Optional[str]) -> str:

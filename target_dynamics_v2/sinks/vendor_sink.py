@@ -8,6 +8,20 @@ class VendorSink(DynamicsBaseBatchSinkBatchUpsert):
     name = "Vendors"
     record_type = "Vendors"
 
+    def _get_output_currency(self, record: dict, payload: dict, company: dict):
+        if currency_id := payload.get("currencyId"):
+            found_currency = next(
+                (currency for currency in company.get("currencies", []) if currency.get("id") == currency_id),
+                None
+            )
+            if found_currency:
+                return found_currency.get("code") or found_currency.get("displayName") or found_currency.get("id")
+
+        if currency_code := payload.get("currencyCode"):
+            return currency_code
+
+        return record.get("currency") or record.get("currencyName") or record.get("currencyId")
+
     def preprocess_batch(self, records: List[dict]):
         # fetch reference data related to existing vendors
         filter_mappings = [
@@ -45,4 +59,11 @@ class VendorSink(DynamicsBaseBatchSinkBatchUpsert):
         records = [{"payload": payload, "request_params": request_params }]
         records += default_dimensions_requests
 
-        return {"records": records}
+        return {
+            "records": records,
+            "state_fields": {
+                "name": record.get("vendorName"),
+                "mapField": self._get_output_currency(record, payload, mapped_record.company),
+                "companyId": mapped_record.company["id"],
+            },
+        }
