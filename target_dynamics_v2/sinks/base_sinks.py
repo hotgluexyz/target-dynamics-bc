@@ -88,6 +88,26 @@ class DynamicsBaseBatchSink(HotglueBaseSink, BatchSink):
         else:
             return str(error)
 
+    def build_state_from_response(self, response: dict) -> dict:
+        state = {
+            "id": None,
+            "success": False,
+            "is_updated": False,
+        }
+
+        if response["status"] in [200, 201]:
+            state["success"] = True
+            state["id"] = response.get("body", {}).get("id")
+
+        if response["status"] == 200:
+            state["is_updated"] = True
+
+        if response["status"] >= 400:
+            state["success"] = False
+            state["error"] = response.get("body", {}).get("error")
+
+        return state
+
 class DynamicsBaseBatchSinkBatchUpsert(DynamicsBaseBatchSink):
     """
     Sink that batch records for pre-processing and also make the
@@ -131,24 +151,17 @@ class DynamicsBaseBatchSinkBatchUpsert(DynamicsBaseBatchSink):
         state_updates = []
 
         for index, response in enumerate(responses):
-            state = {}
+            state = self.build_state_from_response(response)
 
             record = records[index]
             raw_record = raw_records[record["raw_record_index"]]
             if external_id := raw_record.get("externalId"):
                 state["externalId"] = external_id
-
-            if response["status"] in [200, 201]:
-                state["success"] = True
-                state["id"] = response.get("body", {}).get("id")
-
-            if response["status"] == 200:
-                state["is_updated"] = True
+            state.update(record.get("state_fields", {}))
 
             if response["status"] >= 400:
                 state["success"] = False
                 state["record"] = json.dumps(record["records"], cls=HGJSONEncoder, sort_keys=True)
-                state["error"] = response.get("body", {}).get("error")
             state_updates.append(state)
 
         return {"state_updates": state_updates}
@@ -166,26 +179,20 @@ class DynamicsBaseBatchSinkBatchUpsert(DynamicsBaseBatchSink):
         responses: a list of responses from the API
         record: used to make the requests to the API
         """
-        state = {}
-
         first_response = responses[0]
         last_response = responses[-1]
+        response_for_state = last_response if last_response["status"] >= 400 else first_response
+        state = self.build_state_from_response(response_for_state)
+        state["responses"] = responses
 
         raw_record = raw_records[record["raw_record_index"]]
         if external_id := raw_record.get("externalId"):
             state["externalId"] = external_id
+        state.update(record.get("state_fields", {}))
 
         if last_response["status"] >= 400:
-            state["success"] = False
             state["record"] = json.dumps(record["records"], cls=HGJSONEncoder, sort_keys=True)
-            state["error"] = last_response.get("body", {}).get("error")
             return state
-
-        state["success"] = True
-        state["id"] = first_response.get("body", {}).get("id")
-
-        if first_response["status"] == 200:
-            state["is_updated"] = True
 
         return state
     

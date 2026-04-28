@@ -11,6 +11,11 @@ from target_dynamics_v2.auth import DynamicsAuth
 
 LOGGER = singer.get_logger()
 
+
+class DynamicsRequestError(Exception):
+    pass
+
+
 class DynamicsClient:
     ref_request_endpoints = {
         "Companies": "companies",
@@ -71,10 +76,33 @@ class DynamicsClient:
             data=data,
             verify=True
         )
+
+    @staticmethod
+    def _summarize_response(response: requests.Response, max_length: int = 500) -> str:
+        content_type = response.headers.get("Content-Type", "unknown")
+        body = (response.text or "").strip()
+        if len(body) > max_length:
+            body = f"{body[:max_length]}..."
+        if not body:
+            body = "<empty body>"
+        return f"status={response.status_code}, content_type={content_type}, body={body}"
+
+    def _parse_json_response(self, response: requests.Response, context: str) -> dict:
+        try:
+            return response.json()
+        except requests.exceptions.JSONDecodeError as exc:
+            summary = self._summarize_response(response)
+            raise DynamicsRequestError(
+                f"{context} returned a non-JSON response: {summary}"
+            ) from exc
     
     def _validate_response(self, response: requests.Response) -> tuple[bool, str | None]:
         if response.status_code >= 400:
-            msg = self.error_to_string(response.get("error"))
+            try:
+                response_data = self._parse_json_response(response, "Dynamics API request")
+                msg = self.error_to_string(response_data.get("error"))
+            except DynamicsRequestError as exc:
+                msg = str(exc)
             return False, msg
         else:
             return True, None
@@ -125,7 +153,12 @@ class DynamicsClient:
 
         base_url = self.custom_api_url if self._requires_custom_api(requests_data) else None
         response = self._make_request("$batch", "POST", data=request_data, headers=headers, base_url=base_url)
-        responses = response.json().get("responses", [])
+        if response.status_code >= 400:
+            summary = self._summarize_response(response)
+            raise DynamicsRequestError(f"Dynamics batch request failed: {summary}")
+
+        response_data = self._parse_json_response(response, "Dynamics batch request")
+        responses = response_data.get("responses", [])
         return responses
 
     def get_entities(self, record_type: str, url_params: Optional[dict] = {}, filters: Optional[Dict[str, List]] = {}, expand: str = None):
