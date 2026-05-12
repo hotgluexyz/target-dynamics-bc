@@ -2,16 +2,18 @@
 import json
 import os
 
+from singer_sdk.target_base import Target
 from singer_sdk import typing as th
 from target_hotglue.target import TargetHotglue
 
-from target_dynamics_bc.client import DynamicsClient
-from target_dynamics_bc.sinks.bill_payment_sink import BillPaymentSink
-from target_dynamics_bc.sinks.bill_sink import BillSink
-from target_dynamics_bc.sinks.customer_sink import CustomerSink
-from target_dynamics_bc.sinks.journal_entry_sink import JournalEntrySink
-from target_dynamics_bc.sinks.vendor_sink import VendorSink
-from target_dynamics_bc.utils import ReferenceData, DimensionDefinitionNotFound, InvalidConfigurationError
+from target_dynamics_v2.client import DynamicsClient
+from target_dynamics_v2.sinks.bill_sink import BillSink
+from target_dynamics_v2.sinks.credit_memo_sink import CreditMemoSink
+from target_dynamics_v2.sinks.customer_sink import CustomerSink
+from target_dynamics_v2.sinks.journal_entry_sink import JournalEntrySink
+from target_dynamics_v2.sinks.vendor_sink import VendorSink
+from target_dynamics_v2.sinks.item_sink import ItemSink
+from target_dynamics_v2.utils import ReferenceData, DimensionDefinitionNotFound, InvalidConfigurationError
 
 class TargetDynamicsV2(TargetHotglue):
     """Sample target for DynamicsV2."""
@@ -19,10 +21,11 @@ class TargetDynamicsV2(TargetHotglue):
         CustomerSink,
         VendorSink,
         BillSink,
-        BillPaymentSink,
-        JournalEntrySink
+        CreditMemoSink,
+        JournalEntrySink,
+        ItemSink
     ]
-    name = "target-dynamics-bc"
+    name = "target-dynamics-v2"
     def __init__(
         self,
         config=None,
@@ -63,21 +66,20 @@ class TargetDynamicsV2(TargetHotglue):
 
     def get_tenant_config(self):
         snapshot_directory = self.config.get("snapshot_dir", None)
-        tenant_config = {}
+        tenant_config = None
 
         if snapshot_directory:
             config_path = os.path.join(snapshot_directory, "tenant-config.json")
             if not os.path.exists(config_path):
-                self.logger.info(f"tenant-config.json does not exist in the snapshot directory={snapshot_directory}")
-            else:
-                with open(config_path) as f:
-                    tenant_config = json.load(f)
+                raise InvalidConfigurationError(f"tenant-config.json does not exist in the snapshot directory={snapshot_directory}")
+            with open(config_path) as f:
+                tenant_config = json.load(f)
+        else:
+            tenant_config = {}
 
         if "dynamics-bc" not in tenant_config:
             tenant_config["dynamics-bc"] = {
                 "dimension_mappings": {
-                    "class": "CLASS",
-                    "department": "DEPARTMENT"
                 }
             }
 

@@ -1,22 +1,20 @@
-from typing import Dict, List, Tuple
+import json
+from typing import Dict, List
 
-from hotglue_models_accounting.accounting import JournalEntry
-from target_dynamics_bc.client import DynamicsClient
-from target_dynamics_bc.mappers.journal_entry_schema_mapper import JournalEntrySchemaMapper
-from target_dynamics_bc.sinks.base_sinks import DynamicsBaseBatchSinkSingleUpsert
-from target_dynamics_bc.utils import DuplicatedRecord
-
+from target_dynamics_v2.client import DynamicsClient
+from target_dynamics_v2.mappers.journal_entry_schema_mapper import JournalEntrySchemaMapper
+from target_dynamics_v2.sinks.base_sinks import DynamicsBaseBatchSinkSingleUpsert
+from target_dynamics_v2.utils import DuplicatedRecord
+from target_hotglue.common import HGJSONEncoder
 
 class JournalEntrySink(DynamicsBaseBatchSinkSingleUpsert):
     name = "JournalEntries"
     record_type = "Journals"
-    unified_schema = JournalEntry
-    auto_validate_unified_schema = True
 
     def preprocess_batch(self, records: List[Dict]):
         # fetch existing Journals
         filter_mappings = [
-            {"field_from": "journalEntryNumber", "field_to": "displayName", "should_quote": True}
+            {"field_from": "externalId", "field_to": "displayName", "should_quote": True}
         ]
 
         existing_company_journals = self.dynamics_client.get_existing_entities_for_records(
@@ -32,13 +30,12 @@ class JournalEntrySink(DynamicsBaseBatchSinkSingleUpsert):
         # perform the mapping
         return JournalEntrySchemaMapper(record, self, self.reference_data).to_dynamics()
     
-    def upsert_record(self, record: Dict) -> Tuple[str, bool, Dict]:
+    def upsert_record(self, record: Dict) -> tuple[str, bool, Dict]:
         state = {}
 
         payload = record["payload"]
 
-        existing_record_id = payload.get("id")
-        if existing_record_id:
+        if existing_record_id := payload.get("id"):
             raise DuplicatedRecord(f"Found an existing Journal with id={existing_record_id}. Skipping it.")
 
         company_id = record.get("company_id")
@@ -56,7 +53,8 @@ class JournalEntrySink(DynamicsBaseBatchSinkSingleUpsert):
         if journal_response.get("status") != 201:
             id = payload.get("code")
             state["error"] = journal_response.get("body", {}).get("error")
-            return id, False, state
+            state["record"] = json.dumps(record, cls=HGJSONEncoder, sort_keys=True)
+            return None, False, state
         
         journal_id = journal_response["body"]["id"]
         
@@ -83,12 +81,14 @@ class JournalEntrySink(DynamicsBaseBatchSinkSingleUpsert):
         post_response = post_delete_response[0]
         if post_response.get("status") != 204:
             state["error"] = post_response.get("body", {}).get("error")
+            state["record"] = json.dumps(record, cls=HGJSONEncoder, sort_keys=True)
             return journal_id, False, state
         
         delete_response = post_delete_response[1]
         if delete_response.get("status") != 204:
             state["error"] = delete_response.get("body", {}).get("error")
-            return journal_id, False, state
+            state["record"] = json.dumps(record, cls=HGJSONEncoder, sort_keys=True)
+            return None, False, state
 
         return journal_id, True, state
 

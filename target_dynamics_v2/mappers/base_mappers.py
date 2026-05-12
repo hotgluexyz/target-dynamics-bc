@@ -1,7 +1,10 @@
 import datetime
 from typing import Dict, List, Optional
+from target_dynamics_v2.constants import countries
+from target_dynamics_v2.utils import ReferenceData, CompanyNotFound, InvalidDimensionValue, InvalidInputError, RecordNotFound, DimensionDefinitionNotFound
+import singer
 
-from target_dynamics_bc.utils import ReferenceData, CompanyNotFound, InvalidDimensionValue, InvalidInputError, RecordNotFound, DimensionDefinitionNotFound
+LOGGER = singer.get_logger("target-dynamics-v2")
 
 class BaseMapper:
     """A base class responsible for mapping a record ingested in the unified schema format to a payload for NetSuite"""
@@ -23,21 +26,20 @@ class BaseMapper:
     def get_company_from_record(company_list: List[dict], record: dict) -> dict:
         company = None
 
-        subsidiary_id = record.get("subsidiaryId")
-        if subsidiary_id:
+        if subsidiary_id := record.get("subsidiaryId"):
             company = next(
                 (company for company in company_list
                 if company["id"] == subsidiary_id),
                 None
             )
 
-        subsidiary_name = record.get("subsidiaryName")
-        if subsidiary_name and company is None:
+        if (subsidiary_name := record.get("subsidiaryName")) and company is None:
             company = next(
                 (company for company in company_list
                 if company["name"] == subsidiary_name),
                 None
             )
+
 
         return company
 
@@ -50,8 +52,7 @@ class BaseMapper:
         existing_entities_in_dynamics = reference_list.get(self.company["id"], [])
 
         for existing_record_pk_mapping in self.existing_record_pk_mappings:
-            record_id = self.record.get(existing_record_pk_mapping["record_field"])
-            if record_id:
+            if record_id := self.record.get(existing_record_pk_mapping["record_field"]):
                 found_record = next(
                     (dynamics_record for dynamics_record in existing_entities_in_dynamics
                     if dynamics_record[existing_record_pk_mapping["dynamics_field"]] == record_id),
@@ -75,11 +76,10 @@ class BaseMapper:
         """Extracts phone numbers in Dynamics format."""
         phone = {}
 
-        phone_numbers = self.record.get("phoneNumbers", [])
-        if phone_numbers:
+        if phone_numbers := self.record.get("phoneNumbers", []):
             found_record = next(
                 (phone_number for phone_number in phone_numbers
-                if phone_number["type"] == "unknown"),
+                if phone_number.get("type") == "unknown"),
                 None
             )
 
@@ -94,11 +94,10 @@ class BaseMapper:
         """Extracts addresses to Dynamics format."""
         address_info = {}
 
-        addresses = self.record.get("addresses", [])
-        if addresses:
+        if addresses := self.record.get("addresses", []):
             found_record = next(
                 (address for address in addresses
-                if address["addressType"] == "shipping"),
+                if address.get("addressType") == "shipping"),
                 None
             )
 
@@ -114,6 +113,14 @@ class BaseMapper:
                 "postalCode": found_record.get("postalCode"),
             }
 
+            # Map country to its code if neccesary
+            if found_record.get("country") and len(found_record.get("country")) != 2:
+                if countries.get(found_record.get("country")):
+                    address_info["country"] = countries.get(found_record.get("country"))
+                else:
+                    LOGGER.warning(f"Country {found_record.get('country')} not found in the list of supported country codes")
+                    address_info["country"] = None
+                
         return address_info
 
     def _map_currency(self):
@@ -122,24 +129,21 @@ class BaseMapper:
 
         found_currency = None
 
-        currency_id = self.record.get("currencyId")
-        if currency_id:
+        if currency_id := self.record.get("currencyId"):
             found_currency = next(
                 (currency for currency in self.company["currencies"]
                 if currency["id"] == currency_id),
                 None
             )
 
-        currency_code = self.record.get("currency")
-        if currency_code and not found_currency:
+        if (currency_code := self.record.get("currency")) and not found_currency:
             found_currency = next(
                 (currency for currency in self.company["currencies"]
                 if currency["code"] == currency_code),
                 None
             )
 
-        currency_name = self.record.get("currencyName")
-        if currency_name and not found_currency:
+        if (currency_name := self.record.get("currencyName")) and not found_currency:
             found_currency = next(
                 (currency for currency in self.company["currencies"]
                 if currency["displayName"] == currency_name),
@@ -148,8 +152,7 @@ class BaseMapper:
 
         if found_currency:
             currency_info = {
-                "currencyId": found_currency["id"],
-                "currencyCode": found_currency["code"]
+                "currencyId": found_currency["id"]
             }
         elif currency_code:
             currency_info = { "currencyCode": currency_code }
@@ -180,25 +183,22 @@ class BaseMapper:
 
     def _get_dimension_value(self, dimension: dict, value_id: str, value_code: str, value_display_name: str):
         """Find dimension value by looking for dimension id, code or displayName"""
-        found_dimension_value = next(
+        if found_dimension_value := next(
             (dimension_value for dimension_value in dimension.get("dimensionValues", []) if dimension_value["id"] == value_id),
             None
-        )
-        if found_dimension_value:
+        ):
             return found_dimension_value
         
-        found_dimension_value = next(
+        if found_dimension_value := next(
             (dimension_value for dimension_value in dimension.get("dimensionValues", []) if dimension_value["code"] == value_code),
             None
-        )
-        if found_dimension_value:
+        ):
             return found_dimension_value
         
-        found_dimension_value = next(
+        if found_dimension_value := next(
             (dimension_value for dimension_value in dimension.get("dimensionValues", []) if dimension_value["displayName"] == value_display_name),
             None
-        )
-        if found_dimension_value:
+        ):
             return found_dimension_value
 
         if not found_dimension_value:
@@ -223,19 +223,18 @@ class BaseMapper:
         for field_name, dimension_code in dimension_mapping.items():
             dimension = self._get_dimension(dimension_code=dimension_code)
             field_id = self.record.get(f"{field_name}Id", None)
-            field_number = self.record.get(f"{field_name}Number", None)
+            field_external_id = self.record.get(f"{field_name}Number", None)
             field_name = self.record.get(f"{field_name}Name", None)
 
-            if not field_id and not field_number and not field_name:
+            if not field_id and not field_external_id and not field_name:
                 continue
 
-            dimension_value = self._get_dimension_value(dimension, field_id, field_number, field_name)
+            dimension_value = self._get_dimension_value(dimension, field_id, field_external_id, field_name)
             default_dimension = {
                 "dimensionId": dimension_value["dimensionId"],
                 "dimensionValueId": dimension_value["id"]
             }
-            existing_default_dimension = self._get_existing_default_dimension(dimension["id"])
-            if existing_default_dimension:
+            if existing_default_dimension := self._get_existing_default_dimension(dimension["id"]):
                 default_dimension["id"] = existing_default_dimension["id"]
             default_dimensions.append(default_dimension)  
 
@@ -264,8 +263,7 @@ class BaseMapper:
                 "dimensionId": dimension_value["dimensionId"],
                 "dimensionValueId": dimension_value["id"]
             }
-            existing_default_dimension = self._get_existing_default_dimension(dimension["id"])
-            if existing_default_dimension:
+            if existing_default_dimension := self._get_existing_default_dimension(dimension["id"]):
                 default_dimension["id"] = existing_default_dimension["id"]
             default_dimensions.append(default_dimension)  
 
@@ -275,7 +273,7 @@ class BaseMapper:
         # we first try to map dimensions that is in the root field of the record, example classNumber="CLASS01"
         default_dimensions = self._map_default_dimensions_from_root_fields()
 
-        # then we map dimensions that is in the "dimensions" field of the record, example dimensions = [{ "externaId": "AREA", "valueNumber": "15" }]
+        # then we map dimensions that is in the "dimensions" field of the record, example dimensions = [{ "number": "AREA", "valueNumber": "15" }]
         default_dimensions += self._map_default_dimensions_from_dimensions_field(existing_dimensions=default_dimensions)
         
         return {"defaultDimensions": default_dimensions} if default_dimensions else {}
@@ -296,13 +294,13 @@ class BaseMapper:
         for field_name, dimension_code in dimension_mapping.items():
             dimension = self._get_dimension(dimension_code=dimension_code)
             field_id = self.record.get(f"{field_name}Id", None)
-            field_number = self.record.get(f"{field_name}Number", None)
+            field_external_id = self.record.get(f"{field_name}Number", None)
             field_name = self.record.get(f"{field_name}Name", None)
 
-            if not field_id and not field_number and not field_name:
+            if not field_id and not field_external_id and not field_name:
                 continue
 
-            dimension_value = self._get_dimension_value(dimension, field_id, field_number, field_name)
+            dimension_value = self._get_dimension_value(dimension, field_id, field_external_id, field_name)
             dimension_set_lines.append({"id": dimension_value["dimensionId"], "valueId": dimension_value["id"]})  
 
         return dimension_set_lines
@@ -338,10 +336,11 @@ class BaseMapper:
         # we first try to map dimensions that is in the root field of the record, example classNumber="CLASS01"
         dimension_set_lines = self._map_dimension_set_lines_from_root_fields()
 
-        # then we map dimensions that is in the "dimensions" field of the record, example dimensions = [{ "externaId": "AREA", "valueNumber": "15" }]
+        # then we map dimensions that is in the "dimensions" field of the record, example dimensions = [{ "number": "AREA", "valueNumber": "15" }]
         dimension_set_lines += self._map_dimension_set_lines_from_dimensions_field(existing_dimensions=dimension_set_lines)
 
         return {"dimensionSetLines": dimension_set_lines} if dimension_set_lines else {}
+
 
     def _map_vendor(self, required: bool=False):
         vendor_info = {}
@@ -349,24 +348,21 @@ class BaseMapper:
         found_vendor = None
         vendors_reference_data = self.reference_data.get("Vendors", {}).get(self.company["id"], [])
 
-        vendor_id = self.record.get("vendorId")
-        if vendor_id:
+        if vendor_id := self.record.get("vendorId"):
             found_vendor = next(
                 (vendor for vendor in vendors_reference_data
                 if vendor["id"] == vendor_id),
                 None
             )
 
-        vendor_number = self.record.get("vendorNumber")
-        if vendor_number and not found_vendor:
+        if (vendor_number := self.record.get("vendorExternalId")) and not found_vendor:
             found_vendor = next(
                 (vendor for vendor in vendors_reference_data
                 if vendor["number"] == vendor_number),
                 None
             )
 
-        vendor_name = self.record.get("vendorName")
-        if vendor_name and not found_vendor:
+        if (vendor_name := self.record.get("vendorName")) and not found_vendor:
             found_vendor = next(
                 (vendor for vendor in vendors_reference_data
                 if vendor["displayName"] == vendor_name),
@@ -380,73 +376,34 @@ class BaseMapper:
 
         if required:
             if vendor_id is None and vendor_number is None and vendor_name is None:
-                raise InvalidInputError(f"Vendor not informed. Please provide one of vendorId / vendorNumber / vendorName")
+                raise InvalidInputError(f"Vendor not informed. Please provide one of vendorId / vendorExternalId / vendorName")
 
             if not found_vendor:
-                raise RecordNotFound(f"Vendor not found for vendorId={vendor_id} / vendorNumber={vendor_number} / vendorName={vendor_name}")
+                raise RecordNotFound(f"Vendor not found for vendorId={vendor_id} / vendorExternalId={vendor_number} / vendorName={vendor_name}")
 
         return vendor_info
     
-    def _map_payment_journal(self, required: bool=False):
-        payment_journal_info = {}
-
-        found_journal = None
-        payment_journal_reference_data = self.reference_data.get("VendorPaymentJournals", {}).get(self.company["id"], [])
-
-        journal_id = self.record.get("journalId")
-        if journal_id:
-            found_journal = next(
-                (journal for journal in payment_journal_reference_data
-                if journal["id"] == journal_id),
-                None
-            )
-
-        journal_code = self.record.get("journalExternalId")
-        if journal_code and not found_journal:
-            found_journal = next(
-                (journal for journal in payment_journal_reference_data
-                if journal["code"] == journal_code),
-                None
-            )
-
-        if found_journal:
-            payment_journal_info = {
-                "journalId": found_journal["id"]
-            }
-
-        if required:
-            if journal_id is None and journal_code is None:
-                raise InvalidInputError(f"Vendor payment journal not informed. Please provide one of journalId / journalExternalId")
-
-            if not found_journal:
-                raise RecordNotFound(f"Vendor payment journal not found for journalId={journal_id} / journalExternalId={journal_code}")
-
-        return payment_journal_info
-
     def _map_account(self, required: bool=False):
         account_info = {}
 
         found_account = None
         accounts_reference_data = self.company["accounts"]
 
-        account_id = self.record.get("accountId")
-        if account_id:
+        if account_id := self.record.get("accountId"):
             found_account = next(
                 (account for account in accounts_reference_data
                 if account["id"] == account_id),
                 None
             )
 
-        account_number = self.record.get("accountNumber")
-        if account_number and not found_account:
+        if (account_number := self.record.get("accountNumber")) and not found_account:
             found_account = next(
                 (account for account in accounts_reference_data
                 if account["number"] == account_number),
                 None
             )
 
-        account_name = self.record.get("accountName")
-        if account_name and not found_account:
+        if (account_name := self.record.get("accountName")) and not found_account:
             found_account = next(
                 (account for account in accounts_reference_data
                 if account["displayName"] == account_name),
@@ -469,24 +426,21 @@ class BaseMapper:
         found_location = None
         locations_reference_data = self.company["locations"]
 
-        location_id = self.record.get("locationId")
-        if location_id:
+        if location_id := self.record.get("locationId"):
             found_location = next(
                 (location for location in locations_reference_data
                 if location["id"] == location_id),
                 None
             )
 
-        location_external_id = self.record.get("locationNumber")
-        if location_external_id and not found_location:
+        if (location_external_id := self.record.get("locationExternalId")) and not found_location:
             found_location = next(
                 (location for location in locations_reference_data
                 if location["code"] == location_external_id),
                 None
             )
 
-        location_name = self.record.get("locationName")
-        if location_name and not found_location:
+        if (location_name := self.record.get("locationName")) and not found_location:
             found_location = next(
                 (location for location in locations_reference_data
                 if location["displayName"] == location_name),

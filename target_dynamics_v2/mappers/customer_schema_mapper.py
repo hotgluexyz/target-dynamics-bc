@@ -1,14 +1,14 @@
-from target_dynamics_bc.mappers.base_mappers import BaseMapper
+from target_dynamics_v2.mappers.base_mappers import BaseMapper
 
 class CustomerSchemaMapper(BaseMapper):
     name = "Customers"
     existing_record_pk_mappings = [
         {"record_field": "id", "dynamics_field": "id", "required_if_present": True},
-        {"record_field": "customerNumber", "dynamics_field": "number", "required_if_present": False}
+        {"record_field": "externalId", "dynamics_field": "number", "required_if_present": False}
     ]
 
     field_mappings = {
-        "customerNumber": "number",
+        "externalId": "number",
         "companyName": "displayName",
         "email": "email",
         "website": "website",
@@ -43,8 +43,7 @@ class CustomerSchemaMapper(BaseMapper):
             return {}
         
         found = None
-        payment_method = self.record.get("paymentMethod")
-        if payment_method:
+        if payment_method := self.record.get("paymentMethod"):
             found = next(
                 (item for item in self.company.get("paymentMethods", []) if item["id"] == payment_method or item["code"] == payment_method or item["displayName"] == payment_method),
                 None

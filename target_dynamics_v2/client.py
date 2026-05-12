@@ -1,15 +1,20 @@
 import json
 import requests
 
-from target_dynamics_bc.mappers.base_mappers import BaseMapper
+from target_dynamics_v2.mappers.base_mappers import BaseMapper
 from target_hotglue.common import HGJSONEncoder
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional
 import singer
 
 
-from target_dynamics_bc.auth import DynamicsAuth
+from target_dynamics_v2.auth import DynamicsAuth
 
 LOGGER = singer.get_logger()
+
+
+class DynamicsRequestError(Exception):
+    pass
+
 
 class DynamicsClient:
     ref_request_endpoints = {
@@ -27,50 +32,82 @@ class DynamicsClient:
         "purchaseInvoiceLinesDimensionSetLines": "companies({companyId})/purchaseInvoiceLines({entityId})/dimensionSetLines",
         "purchaseInvoiceLines": "companies({companyId})/purchaseInvoices({parentId})/purchaseInvoiceLines",
         "Journals": "companies({companyId})/journals",
-        "vendorPaymentJournals": "companies({companyId})/vendorPaymentJournals",
-        "vendorPayments": "companies({companyId})/vendorPaymentJournals({parentId})/vendorPayments",
-        "vendorPaymentsDimensionSetLines": "companies({companyId})/vendorPaymentJournals({parentId})/vendorPayments({entityId})/dimensionSetLines"
+        "Attachments": "companies({companyId})/attachments",
+        "AttachmentsContent": "companies({companyId})/attachments(id={parentId})/attachmentContent",
+        "purchaseCreditMemos": "companies({companyId})/purchaseCreditMemos",
+        "purchaseCreditMemosDimensionSetLines": "companies({companyId})/purchaseCreditMemos({entityId})/dimensionSetLines",
+        "purchaseCreditMemoLinesDimensionSetLines": "companies({companyId})/purchaseCreditMemoLines({entityId})/dimensionSetLines",
+        "purchaseCreditMemoLines": "companies({companyId})/purchaseCreditMemos({parentId})/purchaseCreditMemoLines",
     }
+
+    # Endpoints that require the custom Precoro API instead of the standard BC API.
+    _CUSTOM_API_ENDPOINTS = {"purchaseInvoiceLines", "purchaseInvoices", "purchaseCreditMemos", "purchaseCreditMemoLines"}
+    _CUSTOM_API_EXCLUDED = {"dimensionSetLines"}
+    _CUSTOM_API_METHODS = {"POST", "PATCH"}
 
     def __init__(self, target) -> None:
         self.config = target.config
         environment = self.config.get("environment_name")
         self.url = self.config.get("full_url", f"https://api.businesscentral.dynamics.com/v2.0/{environment}/api/v2.0/")
+        self.custom_api_url = f"https://api.businesscentral.dynamics.com/v2.0/{environment}/api/precoro/finance/v2.0/"
         self.auth = DynamicsAuth(target)
 
     def get_auth(self):
         r = requests.Session()
         return self.auth(r)
     
-    def _make_request(self, endpoint, method, data=None, params=None, headers=None):
+    def _make_request(self, endpoint, method, data=None, params=None, headers=None, should_dump_json=True, base_url=None):
         request_headers = {"Content-Type": "application/json"}
         if headers:
             request_headers.update(headers)
 
-        url = self.url + endpoint
+        url = (base_url or self.url) + endpoint
         request_params = params or {}
-
         request = self.get_auth()
         request.headers.update(request_headers)
-
-        json_data = json.dumps(data, cls=HGJSONEncoder) if data else None
+        
+        if should_dump_json:
+            data = json.dumps(data, cls=HGJSONEncoder) if data else None
 
         return request.request(
             method=method,
             url=url,
             params=request_params,
-            data=json_data,
+            data=data,
             verify=True
         )
+
+    @staticmethod
+    def _summarize_response(response: requests.Response, max_length: int = 500) -> str:
+        content_type = response.headers.get("Content-Type", "unknown")
+        body = (response.text or "").strip()
+        if len(body) > max_length:
+            body = f"{body[:max_length]}..."
+        if not body:
+            body = "<empty body>"
+        return f"status={response.status_code}, content_type={content_type}, body={body}"
+
+    def _parse_json_response(self, response: requests.Response, context: str) -> dict:
+        try:
+            return response.json()
+        except requests.exceptions.JSONDecodeError as exc:
+            summary = self._summarize_response(response)
+            raise DynamicsRequestError(
+                f"{context} returned a non-JSON response: {summary}"
+            ) from exc
     
-    def _validate_response(self, response: requests.Response) -> Tuple[bool, Optional[str]]:
+    def _validate_response(self, response: requests.Response) -> tuple[bool, str | None]:
         if response.status_code >= 400:
-            msg = response.get("error")
+            try:
+                response_data = self._parse_json_response(response, "Dynamics API request")
+                msg = self.error_to_string(response_data.get("error"))
+            except DynamicsRequestError as exc:
+                msg = str(exc)
             return False, msg
         else:
             return True, None
         
-    def _validate_batch_response(self, response: dict) -> Tuple[bool, Optional[str]]:
+    def _validate_batch_response(self, response: dict) -> tuple[bool, str | None]:
         if response["status"] >= 400:
             msg = response.get("body", {}).get("error")
             return False, msg
@@ -109,14 +146,19 @@ class DynamicsClient:
                 },
                 "body": request.get("body", {})
             }
-            request_id = request.get("request_id")
-            if request_id:
+            if request_id := request.get("request_id"):
                 data["id"] = request_id
 
             request_data["requests"].append(data)
 
-        response = self._make_request("$batch", "POST", data=request_data, headers=headers)
-        responses = response.json().get("responses", [])
+        base_url = self.custom_api_url if self._requires_custom_api(requests_data) else None
+        response = self._make_request("$batch", "POST", data=request_data, headers=headers, base_url=base_url)
+        if response.status_code >= 400:
+            summary = self._summarize_response(response)
+            raise DynamicsRequestError(f"Dynamics batch request failed: {summary}")
+
+        response_data = self._parse_json_response(response, "Dynamics batch request")
+        responses = response_data.get("responses", [])
         return responses
 
     def get_entities(self, record_type: str, url_params: Optional[dict] = {}, filters: Optional[Dict[str, List]] = {}, expand: str = None):
@@ -208,8 +250,7 @@ class DynamicsClient:
                 if filter_field_to not in company_entities_mapping[company["id"]]:
                     company_entities_mapping[company["id"]][filter_field_to] = []
 
-                rec_value = record.get(filter_field_from)
-                if rec_value:
+                if rec_value := record.get(filter_field_from):
                     # escape odata string
                     rec_value = DynamicsClient.escape_odata_string(rec_value)
                     if filter_field_should_quote:
@@ -220,71 +261,17 @@ class DynamicsClient:
         # make requests to get existing entities for each company from Dynamics
         for company_id in company_entities_mapping:
             url_params = { "companyId": company_id }
-            
-            has_filters_to_apply = False
-            for filter_values in company_entities_mapping[company_id].values():
-                if filter_values:
-                    has_filters_to_apply = True
-
-            entities = []
-            if has_filters_to_apply:
-                _, _, entities = self.get_entities(
-                    record_type,
-                    url_params=url_params,
-                    filters=company_entities_mapping[company_id],
-                    expand=expand
-                )
-
+            _, _, entities = self.get_entities(
+                record_type,
+                url_params=url_params,
+                filters=company_entities_mapping[company_id],
+                expand=expand
+            )
             if company_id not in existing_company_entities.keys():
                 existing_company_entities[company_id] = []
             existing_company_entities[company_id] += entities
 
         return existing_company_entities
-    
-    def get_existing_bill_payments_for_records(self, companies_reference_data: List[Dict], company_payment_journals: Dict[str, List], records: List[Dict], filter_mappings: List[Dict]) -> Dict[str, List]:
-        """Maps records to companies and returns a list of entities based on 'records'"""
-        
-        # we need to map the company to query the existing entities
-        company_entities_mapping = {}
-
-        for record in records:
-            company = BaseMapper.get_company_from_record(companies_reference_data, record)
-            if not company:
-                continue
-
-            if company["id"] not in company_entities_mapping.keys():
-                company_entities_mapping[company["id"]] = {}
-            
-            for filter_mapping in filter_mappings:
-                filter_field_from = filter_mapping["field_from"]
-                filter_field_to = filter_mapping["field_to"]
-                filter_field_should_quote = filter_mapping["should_quote"]
-
-                if filter_field_to not in company_entities_mapping[company["id"]]:
-                    company_entities_mapping[company["id"]][filter_field_to] = []
-
-                rec_value = record.get(filter_field_from)
-                if rec_value:
-                    if filter_field_should_quote:
-                        rec_value = f"'{rec_value}'"
-                    company_entities_mapping[company["id"]][filter_field_to].append(rec_value)
-
-        existing_company_bill_payments = {}
-        # make requests to get existing entities for each company from Dynamics
-        for company_id in company_entities_mapping:
-            url_params = { "companyId": company_id }
-            for payment_journal in company_payment_journals.get(company_id, []):
-                url_params["parentId"] = payment_journal["id"]
-                _, _, entities = self.get_entities(
-                    "vendorPayments",
-                    url_params=url_params,
-                    filters=company_entities_mapping[company_id]
-                )
-                if company_id not in existing_company_bill_payments.keys():
-                    existing_company_bill_payments[company_id] = []
-                existing_company_bill_payments[company_id] += entities
-
-        return existing_company_bill_payments
     
     @staticmethod
     def create_default_dimensions_requests(record_type: str, company_id: str, entity_id: str, default_dimensions: List[dict]):
@@ -302,8 +289,7 @@ class DynamicsClient:
                 "method": "POST"
             }
 
-            default_dimension_id = default_dimension.pop("id", None)
-            if default_dimension_id:
+            if default_dimension_id := default_dimension.pop("id", None):
                 request_params = {
                     "url": f"{endpoint}({default_dimension_id})",
                     "method": "PATCH"
@@ -313,7 +299,7 @@ class DynamicsClient:
         return requests
     
     @staticmethod
-    def create_dimension_set_lines_requests(record_type: str, company_id: str, entity_id: str, dimensions_set_lines: List[dict], existing_dimension_set_lines: Optional[List[dict]]=[], parentId: Optional[str]=None):
+    def create_dimension_set_lines_requests(record_type: str, company_id: str, entity_id: str, dimensions_set_lines: List[dict], existing_dimension_set_lines: Optional[List[dict]]=[]):
         """
         Create the requests for upserting dimension set lines for a given entity
         """
@@ -326,7 +312,7 @@ class DynamicsClient:
             found_existing_dimension = next((existing_dimension for existing_dimension in existing_dimension_set_lines if existing_dimension["id"] == dimension_id), None)
 
             endpoint = DynamicsClient.ref_request_endpoints[record_type]
-            endpoint = endpoint.format(companyId=company_id, entityId=entity_id, parentId=parentId)
+            endpoint = endpoint.format(companyId=company_id, entityId=entity_id)
             
             if not found_existing_dimension:
                 request_params = {
@@ -355,8 +341,15 @@ class DynamicsClient:
         }
 
         if entity_id:
+            if record_type == "purchaseInvoiceLines":
+                url = f"companies({company_id})/purchaseInvoiceLines({entity_id})"
+            elif record_type == "purchaseCreditMemoLines":
+                url = f"companies({company_id})/purchaseCreditMemoLines({entity_id})"
+            else:
+                url = f"{endpoint}({entity_id})"
+                
             request_params = {
-                "url": f"{endpoint}({entity_id})",
+                "url": url,
                 "method": "PATCH"
             }
         
@@ -364,7 +357,24 @@ class DynamicsClient:
             request_params["request_id"] = request_id
 
         return request_params
-    
+
+    def _requires_custom_api(self, requests_data: List[dict]) -> bool:
+        """Check if any request in a batch targets purchase invoice endpoints requiring the custom API."""
+        if not self.config.get("use_custom_api"):
+            return False
+
+        for req in requests_data:
+            url = req.get("url", "")
+            method = req.get("method")
+            if (
+                method in self._CUSTOM_API_METHODS
+                and any(ep in url for ep in self._CUSTOM_API_ENDPOINTS)
+                and not any(ex in url for ex in self._CUSTOM_API_EXCLUDED)
+            ):
+                LOGGER.info(f"Custom API match: Method={method}, URL={url}")
+                return True
+        return False
+
     @staticmethod
     def escape_odata_string(value: Optional[str]) -> str:
         """Escape single quotes in OData string literals by doubling them."""

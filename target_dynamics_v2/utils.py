@@ -1,5 +1,4 @@
-from typing import List
-from typing_extensions import TypedDict
+from typing import TypedDict, List
 
 class InvalidConfigurationError(Exception):
     pass
@@ -8,9 +7,6 @@ class DimensionDefinitionNotFound(InvalidConfigurationError):
     pass
 
 class InvalidCustomFieldDefinition(InvalidConfigurationError):
-    pass
-
-class InvalidRecordState(Exception):
     pass
 
 class InvalidInputError(Exception):

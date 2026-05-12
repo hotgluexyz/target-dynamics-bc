@@ -1,4 +1,4 @@
-from target_dynamics_bc.mappers.base_mappers import BaseMapper
+from target_dynamics_v2.mappers.base_mappers import BaseMapper
 
 class BillLineItemSchemaMapper(BaseMapper):
     name = "BillLines"
@@ -42,18 +42,15 @@ class BillLineItemSchemaMapper(BaseMapper):
         
         found_record = None
 
-        record_external_id = self.record.get("externalId")
-        if record_external_id:
+        if record_external_id := self.record.get("externalId"):
             found_record = next(
                 (line for line in self.existing_lines
-                if str(line["sequence"]) == record_external_id),
+                if line["sequence"] == record_external_id),
                 None
             )
 
         record_item = self._map_item()
-        record_item_id = record_item.get("itemId")
-        record_description = self.record.get("description")
-        if record_item_id and record_description:
+        if (record_item_id := record_item.get("itemId")) and (record_description := self.record.get("description")):
             found_record = next(
                 (line for line in self.existing_lines
                 if line["description"] == record_description and line["itemId"] == record_item_id),
@@ -68,24 +65,21 @@ class BillLineItemSchemaMapper(BaseMapper):
 
         items_reference_data = self.reference_data.get("Items", {}).get(self.company["id"], [])
 
-        item_id = self.record.get("itemId")
-        if item_id:
+        if item_id := self.record.get("itemId"):
             found_item = next(
                 (item for item in items_reference_data
                 if item["id"] == item_id),
                 None
             )
 
-        item_external_id = self.record.get("itemNumber")
-        if item_external_id and not found_item:
+        if (item_external_id := self.record.get("itemExternalId")) and not found_item:
             found_item = next(
                 (item for item in items_reference_data
                 if item["number"] == item_external_id),
                 None
             )
 
-        item_name = self.record.get("itemExternalName")
-        if item_name and not found_item:
+        if (item_name := self.record.get("itemExternalName")) and not found_item:
             found_item = next(
                 (item for item in items_reference_data
                 if item["displayName"] == item_name),

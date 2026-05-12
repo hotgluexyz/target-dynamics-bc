@@ -1,13 +1,18 @@
-from target_dynamics_bc.mappers.base_mappers import BaseMapper
+from target_dynamics_v2.mappers.base_mappers import BaseMapper
 
-class BillExpenseItemSchemaMapper(BaseMapper):
-    name = "BillLines"
+class CreditMemoExpenseItemSchemaMapper(BaseMapper):
+    name = "CreditMemoLines"
     field_mappings = {
         "externalId": "sequence",
         "description": "description",
         "taxCode": "taxCode",
         "discount": "discountAmount",
         "amount": "unitCost",
+        "irpfTaxPercent": "irpfTaxPercent",
+        "irpfTaxAmount": "irpfTaxAmount",
+        "quantity": "quantity",
+        "vendorContractNumber": "vendorContractNumber",
+        "purchaseOrderNumber": "purchaseOrderNumber"
     }
 
     def __init__(
@@ -27,7 +32,6 @@ class BillExpenseItemSchemaMapper(BaseMapper):
             **self._map_location(),
             **self._map_dimension_set_lines(),
             "lineType": "Account",
-            "quantity": 1
         }
 
         self._map_fields(payload)
@@ -39,22 +43,21 @@ class BillExpenseItemSchemaMapper(BaseMapper):
         """
         if self.company is None:
             return None
-        
+
         found_record = None
 
-        record_external_id = self.record.get("externalId")
-        if record_external_id:
+        if record_external_id := self.record.get("externalId"):
             found_record = next(
                 (line for line in self.existing_lines
-                if str(line["sequence"]) == record_external_id),
+                if line["sequence"] == record_external_id),
                 None
             )
 
-        record_description = self.record.get("description")
-        if record_description:
+        record_account = self._map_account()
+        if (record_account_id := record_account.get("accountId")) and (record_description := self.record.get("description")):
             found_record = next(
                 (line for line in self.existing_lines
-                if line["description"] == record_description),
+                if line["description"] == record_description and line["accountId"] == record_account_id),
                 None
             )
 
