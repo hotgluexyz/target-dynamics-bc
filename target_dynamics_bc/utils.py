@@ -1,5 +1,27 @@
-from typing import List
+import json
+from typing import List, Optional
 from typing_extensions import TypedDict
+
+from target_hotglue.common import HGJSONEncoder
+
+
+def extract_error_message(response: dict) -> Optional[str]:
+    if not isinstance(response, dict):
+        return None
+    body = response.get("body")
+    if body is None:
+        return None
+    if not isinstance(body, dict):
+        return str(body)
+    error = body.get("error")
+    if error is None:
+        return str(body)
+    if isinstance(error, dict):
+        message = error.get("message")
+        if isinstance(message, str) and message:
+            return message
+        return json.dumps(error, cls=HGJSONEncoder)
+    return str(error)
 
 class InvalidConfigurationError(Exception):
     pass

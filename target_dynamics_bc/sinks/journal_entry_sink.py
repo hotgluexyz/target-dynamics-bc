@@ -4,7 +4,7 @@ from hotglue_models_accounting.accounting import JournalEntry
 from target_dynamics_bc.client import DynamicsClient
 from target_dynamics_bc.mappers.journal_entry_schema_mapper import JournalEntrySchemaMapper
 from target_dynamics_bc.sinks.base_sinks import DynamicsBaseBatchSinkSingleUpsert
-from target_dynamics_bc.utils import DuplicatedRecord
+from target_dynamics_bc.utils import DuplicatedRecord, extract_error_message
 
 
 class JournalEntrySink(DynamicsBaseBatchSinkSingleUpsert):
@@ -55,7 +55,7 @@ class JournalEntrySink(DynamicsBaseBatchSinkSingleUpsert):
 
         if journal_response.get("status") != 201:
             id = payload.get("code")
-            state["error"] = journal_response.get("body", {}).get("error", {}).get("message")
+            state["error"] = extract_error_message(journal_response)
             return id, False, state
         
         journal_id = journal_response["body"]["id"]
@@ -82,12 +82,12 @@ class JournalEntrySink(DynamicsBaseBatchSinkSingleUpsert):
         
         post_response = post_delete_response[0]
         if post_response.get("status") != 204:
-            state["error"] = post_response.get("body", {}).get("error", {}).get("message")
+            state["error"] = extract_error_message(post_response)
             return journal_id, False, state
         
         delete_response = post_delete_response[1]
         if delete_response.get("status") != 204:
-            state["error"] = delete_response.get("body", {}).get("error", {}).get("message")
+            state["error"] = extract_error_message(delete_response)
             return journal_id, False, state
 
         return journal_id, True, state
