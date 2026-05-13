@@ -65,14 +65,14 @@ class DynamicsClient:
     
     def _validate_response(self, response: requests.Response) -> Tuple[bool, Optional[str]]:
         if response.status_code >= 400:
-            msg = response.get("error")
+            msg = response.json().get("error", {}).get("message")
             return False, msg
         else:
             return True, None
-        
+
     def _validate_batch_response(self, response: dict) -> Tuple[bool, Optional[str]]:
         if response["status"] >= 400:
-            msg = response.get("body", {}).get("error")
+            msg = response.get("body", {}).get("error", {}).get("message")
             return False, msg
         else:
             return True, None

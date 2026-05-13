@@ -93,7 +93,7 @@ class BillSink(DynamicsBaseBatchSinkSingleUpsert):
         bill_upsert_response = self.dynamics_client.make_batch_request(bill_upsert_request_data)[0]
 
         if bill_upsert_response.get("status") not in [200, 201]:
-            state["error"] = bill_upsert_response.get("body", {}).get("error")
+            state["error"] = bill_upsert_response.get("body", {}).get("error", {}).get("message")
             return bill_id, False, state
         
         bill_id = bill_upsert_response["body"]["id"]
@@ -110,7 +110,7 @@ class BillSink(DynamicsBaseBatchSinkSingleUpsert):
 
             for bill_dimensions_upsert_response in bill_dimensions_upsert_responses:
                 if bill_dimensions_upsert_response["status"] not in [200, 201]:
-                    state["error"] = bill_dimensions_upsert_response.get("body", {}).get("error")
+                    state["error"] = bill_dimensions_upsert_response.get("body", {}).get("error", {}).get("message")
                     return bill_id, False, state
         
         # if there is no bill lines to upsert we are done. Success!
@@ -140,7 +140,7 @@ class BillSink(DynamicsBaseBatchSinkSingleUpsert):
         bill_lines_upsert_responses = self.dynamics_client.make_batch_request(bill_lines_upsert_request_data) if bill_lines_upsert_request_data else []
         for bill_lines_upsert_response in bill_lines_upsert_responses:
             if bill_lines_upsert_response.get("status") not in [200, 201]:
-                state["error"] = bill_lines_upsert_response.get("body", {}).get("error")
+                state["error"] = bill_lines_upsert_response.get("body", {}).get("error", {}).get("message")
                 return bill_id, False, state
 
 
@@ -174,7 +174,7 @@ class BillSink(DynamicsBaseBatchSinkSingleUpsert):
         bill_lines_update_responses = self.dynamics_client.make_batch_request(bill_lines_update_request_data) if bill_lines_update_request_data else []
         for bill_lines_update_response in bill_lines_update_responses:
             if bill_lines_update_response.get("status") not in [200, 201]:
-                state["error"] = bill_lines_update_response.get("body", {}).get("error")
+                state["error"] = bill_lines_update_response.get("body", {}).get("error", {}).get("message")
                 return bill_id, False, state
 
         # upsert bill lines dimensions if there are any
@@ -203,7 +203,7 @@ class BillSink(DynamicsBaseBatchSinkSingleUpsert):
 
             for bill_lines_dimensions_upsert_response in bill_lines_dimensions_upsert_responses:
                 if bill_lines_dimensions_upsert_response["status"] not in [200, 201]:
-                    state["error"] = bill_lines_dimensions_upsert_response.get("body", {}).get("error")
+                    state["error"] = bill_lines_dimensions_upsert_response.get("body", {}).get("error", {}).get("message")
                     return bill_id, False, state
 
         # POST the bill if is_draft is False
@@ -218,7 +218,7 @@ class BillSink(DynamicsBaseBatchSinkSingleUpsert):
             post_bill_response = self.dynamics_client.make_batch_request([request_params])[0]
 
             if post_bill_response.get("status") != 204:
-                state["error"] = post_bill_response.get("body", {}).get("error")
+                state["error"] = post_bill_response.get("body", {}).get("error", {}).get("message")
                 return bill_id, False, state
 
 

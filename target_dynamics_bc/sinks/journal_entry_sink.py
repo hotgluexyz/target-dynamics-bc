@@ -55,7 +55,7 @@ class JournalEntrySink(DynamicsBaseBatchSinkSingleUpsert):
 
         if journal_response.get("status") != 201:
             id = payload.get("code")
-            state["error"] = journal_response.get("body", {}).get("error")
+            state["error"] = journal_response.get("body", {}).get("error", {}).get("message")
             return id, False, state
         
         journal_id = journal_response["body"]["id"]
@@ -82,12 +82,12 @@ class JournalEntrySink(DynamicsBaseBatchSinkSingleUpsert):
         
         post_response = post_delete_response[0]
         if post_response.get("status") != 204:
-            state["error"] = post_response.get("body", {}).get("error")
+            state["error"] = post_response.get("body", {}).get("error", {}).get("message")
             return journal_id, False, state
         
         delete_response = post_delete_response[1]
         if delete_response.get("status") != 204:
-            state["error"] = delete_response.get("body", {}).get("error")
+            state["error"] = delete_response.get("body", {}).get("error", {}).get("message")
             return journal_id, False, state
 
         return journal_id, True, state

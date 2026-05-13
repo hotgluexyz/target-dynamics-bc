@@ -143,7 +143,7 @@ class DynamicsBaseBatchSinkBatchUpsert(DynamicsBaseBatchSink):
 
             if response["status"] >= 400:
                 state["success"] = False
-                state["error"] = response.get("body", {}).get("error")
+                state["error"] = response.get("body", {}).get("error", {}).get("message")
             state_updates.append(state)
 
         return {"state_updates": state_updates}
@@ -173,7 +173,7 @@ class DynamicsBaseBatchSinkBatchUpsert(DynamicsBaseBatchSink):
 
         if last_response["status"] >= 400:
             state["success"] = False
-            state["error"] = last_response.get("body", {}).get("error")
+            state["error"] = last_response.get("body", {}).get("error", {}).get("message")
             return state
 
         state["success"] = True

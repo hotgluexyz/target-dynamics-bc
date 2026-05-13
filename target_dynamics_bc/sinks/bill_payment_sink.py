@@ -85,7 +85,7 @@ class BillPaymentSink(DynamicsBaseBatchSinkSingleUpsert):
         bill_payment_upsert_response = self.dynamics_client.make_batch_request(bill_payment_upsert_request_data)[0]
 
         if bill_payment_upsert_response.get("status") not in [200, 201]:
-            state["error"] = bill_payment_upsert_response.get("body", {}).get("error")
+            state["error"] = bill_payment_upsert_response.get("body", {}).get("error", {}).get("message")
             return bill_payment_id, False, state
         
         bill_payment_id = bill_payment_upsert_response["body"]["id"]
@@ -102,7 +102,7 @@ class BillPaymentSink(DynamicsBaseBatchSinkSingleUpsert):
 
             for bill_payment_dimensions_upsert_response in bill_payment_dimensions_upsert_responses:
                 if bill_payment_dimensions_upsert_response["status"] not in [200, 201]:
-                    state["error"] = bill_payment_dimensions_upsert_response.get("body", {}).get("error")
+                    state["error"] = bill_payment_dimensions_upsert_response.get("body", {}).get("error", {}).get("message")
                     return bill_payment_id, False, state
 
         if is_update:
