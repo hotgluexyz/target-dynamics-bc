@@ -9,6 +9,7 @@ from target_hotglue.client import HotglueBaseSink
 from target_hotglue.common import HGJSONEncoder
 
 from target_dynamics_bc.client import DynamicsClient
+from target_dynamics_bc.utils import extract_error_message
 
 class DynamicsBaseBatchSink(HotglueBaseSink, BatchSink):
     max_size = 1000 # max allowed by dynamics is 1000
@@ -143,7 +144,7 @@ class DynamicsBaseBatchSinkBatchUpsert(DynamicsBaseBatchSink):
 
             if response["status"] >= 400:
                 state["success"] = False
-                state["error"] = response.get("body", {}).get("error")
+                state["error"] = extract_error_message(response)
             state_updates.append(state)
 
         return {"state_updates": state_updates}
@@ -173,7 +174,7 @@ class DynamicsBaseBatchSinkBatchUpsert(DynamicsBaseBatchSink):
 
         if last_response["status"] >= 400:
             state["success"] = False
-            state["error"] = last_response.get("body", {}).get("error")
+            state["error"] = extract_error_message(last_response)
             return state
 
         state["success"] = True

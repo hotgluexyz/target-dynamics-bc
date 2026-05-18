@@ -8,6 +8,7 @@ import singer
 
 
 from target_dynamics_bc.auth import DynamicsAuth
+from target_dynamics_bc.utils import extract_error_message
 
 LOGGER = singer.get_logger()
 
@@ -65,14 +66,18 @@ class DynamicsClient:
     
     def _validate_response(self, response: requests.Response) -> Tuple[bool, Optional[str]]:
         if response.status_code >= 400:
-            msg = response.get("error")
+            try:
+                body = response.json()
+            except ValueError:
+                body = response.text
+            msg = extract_error_message({"body": body})
             return False, msg
         else:
             return True, None
-        
+
     def _validate_batch_response(self, response: dict) -> Tuple[bool, Optional[str]]:
         if response["status"] >= 400:
-            msg = response.get("body", {}).get("error")
+            msg = extract_error_message(response)
             return False, msg
         else:
             return True, None
