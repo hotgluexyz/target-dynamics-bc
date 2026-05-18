@@ -13,7 +13,7 @@ class CreditMemoSchemaMapper(BaseMapper):
     ]
 
     field_mappings = {
-        "creditMemoNumber": "number",
+        "creditMemoNumber": "vendorCreditMemoNumber",
         "dueDate": "dueDate",
         "issueDate": "creditMemoDate",
         "postingDate": "postingDate",
