@@ -6,11 +6,9 @@ from target_hotglue.common import HGJSONEncoder
 
 
 def extract_error_message(response: dict) -> Optional[str]:
-    if not isinstance(response, dict):
-        return None
     body = response.get("body")
     if body is None:
-        return None
+        return str(response)
     if not isinstance(body, dict):
         return str(body)
     error = body.get("error")
