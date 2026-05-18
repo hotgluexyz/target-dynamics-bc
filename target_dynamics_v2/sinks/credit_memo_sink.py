@@ -1,10 +1,13 @@
 import json
+import singer
 from typing import Dict, List
 
 from target_dynamics_v2.client import DynamicsClient
 from target_dynamics_v2.mappers.credit_memo_schema_mapper import CreditMemoSchemaMapper
 from target_dynamics_v2.sinks.base_sinks import DynamicsBaseBatchSinkSingleUpsert
 from target_hotglue.common import HGJSONEncoder
+
+LOGGER = singer.get_logger()
 
 
 class CreditMemoSink(DynamicsBaseBatchSinkSingleUpsert):
@@ -82,7 +85,16 @@ class CreditMemoSink(DynamicsBaseBatchSinkSingleUpsert):
         credit_memo_upsert_response = self.dynamics_client.make_batch_request(credit_memo_upsert_request_data)[0]
 
         if credit_memo_upsert_response.get("status") not in [200, 201]:
-            state["error"] = credit_memo_upsert_response.get("body", {}).get("error")
+            error = credit_memo_upsert_response.get("body", {}).get("error", {})
+            error_message = error.get("message", "") if isinstance(error, dict) else str(error)
+            if is_update and "posted and can no longer be modified" in error_message:
+                LOGGER.warning(
+                    f"Credit memo {credit_memo_id} is already posted in Dynamics BC and cannot be modified. Skipping update."
+                )
+                state["is_updated"] = True
+                state["skipped"] = True
+                return credit_memo_id, True, state
+            state["error"] = error
             state["record"] = json.dumps(record, cls=HGJSONEncoder, sort_keys=True)
             return None, False, state
 
