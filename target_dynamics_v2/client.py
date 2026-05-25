@@ -47,10 +47,43 @@ class DynamicsClient:
 
     def __init__(self, target) -> None:
         self.config = target.config
-        environment = self.config.get("environment_name")
-        self.url = self.config.get("full_url", f"https://api.businesscentral.dynamics.com/v2.0/{environment}/api/v2.0/")
-        self.custom_api_url = f"https://api.businesscentral.dynamics.com/v2.0/{environment}/api/precoro/finance/v2.0/"
         self.auth = DynamicsAuth(target)
+
+        environment = self.config.get("environment_name", "Production")
+        full_url = self.config.get("full_url")
+        if full_url:
+            self.url = full_url
+            self.custom_api_url = f"https://api.businesscentral.dynamics.com/v2.0/{environment}/api/precoro/finance/v2.0/"
+        else:
+            tenant_id, env_name = self._resolve_environment(environment)
+            self.url = f"https://api.businesscentral.dynamics.com/v2.0/{tenant_id}/{env_name}/api/v2.0/"
+            self.custom_api_url = f"https://api.businesscentral.dynamics.com/v2.0/{tenant_id}/{env_name}/api/precoro/finance/v2.0/"
+
+    def _resolve_environment(self, environment_name: str) -> tuple:
+        """Return (aadTenantId, name) for the given environment.
+
+        Handles the 'Name (Type)' format that the HotGlue UI may produce
+        (e.g. 'Production (Production)' → matches BC env named 'Production').
+        """
+        session = self.get_auth()
+        response = session.get("https://api.businesscentral.dynamics.com/environments/v1.1")
+        response.raise_for_status()
+        environments = response.json().get("value", [])
+
+        name_to_match = environment_name
+        if " (" in name_to_match:
+            name_to_match = name_to_match.split(" (")[0].strip()
+
+        chosen = next(
+            (e for e in environments if e["name"].lower() == name_to_match.lower()),
+            None,
+        )
+        if not chosen:
+            raise Exception(
+                f"Environment '{environment_name}' not found in Business Central. "
+                f"Available: {[e['name'] for e in environments]}"
+            )
+        return chosen["aadTenantId"], chosen["name"]
 
     def get_auth(self):
         r = requests.Session()
