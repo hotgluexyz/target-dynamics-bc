@@ -9,6 +9,7 @@ class BillLineItemSchemaMapper(BaseMapper):
         "discount": "discountAmount",
         "quantity": "quantity",
         "unitPrice": "unitCost",
+        "purchaseOrderNumber": "purchaseOrderNumber",
     }
 
     def __init__(
