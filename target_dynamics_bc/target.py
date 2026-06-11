@@ -42,13 +42,13 @@ class TargetDynamicsV2(TargetHotglue):
         self.dimensions_mapping = self.load_fields_and_dimensions_mapping_config()
 
     def get_reference_data(self) -> ReferenceData:
-        self.logger.info(f"Getting reference data...")
+        self.logger.info("Getting reference data...")
 
         reference_data: ReferenceData = ReferenceData()
         _, _, companies = self.dynamics_client.get_companies()
         reference_data["companies"] = companies
 
-        self.logger.info(f"Done getting reference data...")
+        self.logger.info("Done getting reference data...")
         return reference_data
 
     def validate_dimensions_mapping(self, dimensions_mapping: dict):
@@ -87,7 +87,7 @@ class TargetDynamicsV2(TargetHotglue):
         tenant_config = self.get_tenant_config()
         dynamics_config = tenant_config.get("dynamics-bc")
 
-        if dynamics_config == None:
+        if dynamics_config is None:
             raise InvalidConfigurationError("dynamics-bc is not provided in the tenant-config.json")
 
         dimensions_mapping = dynamics_config.get("dimension_mappings", {})
