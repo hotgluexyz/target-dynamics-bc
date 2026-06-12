@@ -258,7 +258,7 @@ class DynamicsBaseBatchSinkSingleUpsert(DynamicsBaseBatchSink):
         """
         pass
 
-    def process_batch(self, context: dict) -> None:
+    def process_batch(self, context: dict) -> None:  # noqa: C901
         if not self.latest_state:
             self.init_state()
 

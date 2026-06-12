@@ -73,7 +73,7 @@ class BillSink(DynamicsBaseBatchSinkSingleUpsert):
         # perform the mapping
         return BillSchemaMapper(record, self, self.reference_data).to_dynamics()
 
-    def upsert_record(self, record: Dict) -> Tuple[str, bool, Dict]:
+    def upsert_record(self, record: Dict) -> Tuple[str, bool, Dict]:  # noqa: C901
         state = {}
         payload = record["payload"]
         
@@ -85,7 +85,7 @@ class BillSink(DynamicsBaseBatchSinkSingleUpsert):
         bill_lines = payload.pop("purchaseInvoiceLines", [])
 
         if is_update and record["status"] != "Draft":
-            raise InvalidRecordState(f"Cannot update a Bill that's not in Draft state")
+            raise InvalidRecordState("Cannot update a Bill that's not in Draft state")
 
         # create/update bill
         request_params = DynamicsClient.get_entity_upsert_request_params(self.record_type, company_id, bill_id)

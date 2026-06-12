@@ -380,7 +380,7 @@ class BaseMapper:
 
         if required:
             if vendor_id is None and vendor_number is None and vendor_name is None:
-                raise InvalidInputError(f"Vendor not informed. Please provide one of vendorId / vendorNumber / vendorName")
+                raise InvalidInputError("Vendor not informed. Please provide one of vendorId / vendorNumber / vendorName")
 
             if not found_vendor:
                 raise RecordNotFound(f"Vendor not found for vendorId={vendor_id} / vendorNumber={vendor_number} / vendorName={vendor_name}")
@@ -416,7 +416,7 @@ class BaseMapper:
 
         if required:
             if journal_id is None and journal_code is None:
-                raise InvalidInputError(f"Vendor payment journal not informed. Please provide one of journalId / journalExternalId")
+                raise InvalidInputError("Vendor payment journal not informed. Please provide one of journalId / journalExternalId")
 
             if not found_journal:
                 raise RecordNotFound(f"Vendor payment journal not found for journalId={journal_id} / journalExternalId={journal_code}")
@@ -502,7 +502,7 @@ class BaseMapper:
 
     def _map_fields(self, payload):
         for record_key, payload_key in self.field_mappings.items():
-            if record_key in self.record and self.record.get(record_key) != None:
+            if record_key in self.record and self.record.get(record_key) is not None:
                 if isinstance(payload_key, list):
                     for key in payload_key:
                         payload[key] = self.record.get(record_key)

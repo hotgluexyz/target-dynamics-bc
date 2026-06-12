@@ -1,7 +1,7 @@
 import hashlib
 from target_dynamics_bc.mappers.base_mappers import BaseMapper
 from target_dynamics_bc.mappers.journal_entry_line_schema_mapper import JournalEntryLineSchemaMapper
-from target_dynamics_bc.utils import InvalidInputError, MissingField, RecordNotFound
+from target_dynamics_bc.utils import InvalidInputError, MissingField
 
 class JournalEntrySchemaMapper(BaseMapper):
     name = "Journals"
@@ -37,21 +37,21 @@ class JournalEntrySchemaMapper(BaseMapper):
     def _validate_journal_entry_number(self):
         journal_entry_number = self.record.get("journalEntryNumber")
         if not journal_entry_number:
-            raise MissingField(f"The required field 'journalEntryNumber' was not provided")
+            raise MissingField("The required field 'journalEntryNumber' was not provided")
 
         if len(journal_entry_number) > 20:
             raise InvalidInputError(f"journalEntryNumber={journal_entry_number} is too long. The value must be less than or equal to 20 characters.")
 
     def _validate_transaction_date(self):
         if not self.record.get("transactionDate"):
-            raise MissingField(f"The required field 'transactionDate' was not provided")
+            raise MissingField("The required field 'transactionDate' was not provided")
 
     def _map_journal_entry_lines(self):
         lines = []
         transaction_date = self.record.get("transactionDate")
 
         if not self.record.get("lineItems", []):
-            raise MissingField(f"The required field 'lineItems' was not provided")
+            raise MissingField("The required field 'lineItems' was not provided")
 
         lines_amount_sum = 0
         for item in self.record.get("lineItems", []):

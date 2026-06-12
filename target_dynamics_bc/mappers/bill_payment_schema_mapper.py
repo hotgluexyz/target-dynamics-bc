@@ -61,7 +61,7 @@ class BillPaymentSchemaMapper(BaseMapper):
     def _validate_external_id(self):
         external_id = self.record.get("externalId")
         if not external_id:
-            raise MissingField(f"The required field 'externalId' was not provided")
+            raise MissingField("The required field 'externalId' was not provided")
 
         if len(external_id) > 20:
             raise InvalidInputError(f"The length of externalId={external_id} should be less or equal to 20.")
@@ -96,7 +96,7 @@ class BillPaymentSchemaMapper(BaseMapper):
             )
 
         if bill_id is None and bill_invoice_number is None and bill_number is None:
-            raise InvalidInputError(f"Bill not informed. Please provide one of billId / billNumber / billExternalId")
+            raise InvalidInputError("Bill not informed. Please provide one of billId / billNumber / billExternalId")
 
         if not found_bill:
             raise RecordNotFound(f"Bill not found for billId={bill_id} / billNumber={bill_number} / billExternalId={bill_invoice_number}")
