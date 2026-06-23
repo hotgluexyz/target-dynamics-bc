@@ -2,7 +2,7 @@ import json
 import requests
 
 from target_dynamics_bc.mappers.base_mappers import BaseMapper
-from target_hotglue.common import HGJSONEncoder
+from hotglue_singer_sdk.target_sdk.common import HGJSONEncoder
 from typing import Dict, List, Optional, Tuple
 import singer
 
