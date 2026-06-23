@@ -2,7 +2,7 @@ import json
 from typing import List, Optional
 from typing_extensions import TypedDict
 
-from target_hotglue.common import HGJSONEncoder
+from hotglue_singer_sdk.target_sdk.common import HGJSONEncoder
 
 
 def extract_error_message(response: dict) -> Optional[str]:

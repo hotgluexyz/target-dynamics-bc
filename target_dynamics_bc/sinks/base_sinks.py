@@ -3,10 +3,10 @@ import hashlib
 import json
 from typing import Dict, List, Optional, Tuple
 
-from singer_sdk.plugin_base import PluginBase
-from singer_sdk.sinks import BatchSink
-from target_hotglue.client import HotglueBaseSink
-from target_hotglue.common import HGJSONEncoder
+from hotglue_singer_sdk.plugin_base import PluginBase
+from hotglue_singer_sdk.sinks import BatchSink
+from hotglue_singer_sdk.target_sdk.client import HotglueBaseSink
+from hotglue_singer_sdk.target_sdk.common import HGJSONEncoder
 
 from target_dynamics_bc.client import DynamicsClient
 from target_dynamics_bc.utils import extract_error_message

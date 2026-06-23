@@ -2,8 +2,8 @@
 import json
 import os
 
-from singer_sdk import typing as th
-from target_hotglue.target import TargetHotglue
+from hotglue_singer_sdk import typing as th
+from hotglue_singer_sdk.target_sdk.target import TargetHotglue
 
 from target_dynamics_bc.client import DynamicsClient
 from target_dynamics_bc.sinks.bill_payment_sink import BillPaymentSink
