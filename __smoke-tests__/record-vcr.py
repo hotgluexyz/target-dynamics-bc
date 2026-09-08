@@ -1,5 +1,4 @@
 import vcr
-import os
 from hotglue_smoke_test.vcr.target import VCRTargetTestRunner
 
 
