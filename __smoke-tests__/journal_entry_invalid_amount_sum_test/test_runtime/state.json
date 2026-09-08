@@ -1,0 +1,1 @@
+{"bookmarks": {"JournalEntries": [{"success": false, "error": "The Journal is out of balance by 15.0. Please check that the Amount is correct for each line", "externalId": "TEST-10009"}]}, "summary": {"JournalEntries": {"success": 0, "fail": 1, "existing": 0, "updated": 0}}}

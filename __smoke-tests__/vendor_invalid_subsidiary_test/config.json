@@ -1,0 +1,10 @@
+{
+    "client_id": "client_id",
+    "client_secret": "client_secret",
+    "refresh_token": "refresh_token",
+    "redirect_uri": "https://hotglue.xyz/callback",
+    "environment_name": "Production",
+    "expires_in": "4337",
+    "access_token": "access_token",
+    "snapshot_dir": "./__tests__/target/target-dynamics-bc/"
+}

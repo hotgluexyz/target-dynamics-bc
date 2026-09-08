@@ -1,0 +1,17 @@
+{
+    "start_date": "2000-01-01T00:00:00.000Z",
+    "client_id": "client_id",
+    "client_secret": "client_secret",
+    "refresh_token": "refresh_token",
+    "access_token": "access_token",
+    "expires_in": "4403",
+    "redirect_uri": "https://qa.hotglue.io/callback",
+    "api_type": "BULK",
+    "select_fields_by_default": true,
+    "entity_id": "dynamics-bc",
+    "entity_type": "connector",
+    "flowVersion": "2",
+    "hideText": false,
+    "session_state": "00bbb6c9-6e6d-1030-f2ec-da16ab31a402",
+    "environment_name": "Production"
+}

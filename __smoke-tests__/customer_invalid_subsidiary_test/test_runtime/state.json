@@ -1,0 +1,1 @@
+{"bookmarks": {"Customers": [{"success": false, "error": "Could not find Company with subsidiaryId=invalid / subsidiaryName=None"}, {"success": false, "error": "Could not find Company with subsidiaryId=None / subsidiaryName=invalid", "externalId": "EXT-TEST-1000003"}]}, "summary": {"Customers": {"success": 0, "fail": 2, "existing": 0, "updated": 0}}}

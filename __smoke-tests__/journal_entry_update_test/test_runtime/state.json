@@ -1,0 +1,1 @@
+{"bookmarks": {"JournalEntries": [{"success": false, "error": "Found an existing Journal with id=5a54c623-c130-f011-9a4a-000d3a74ff0d. Skipping it.", "externalId": "TEST-10008"}]}, "summary": {"JournalEntries": {"success": 0, "fail": 1, "existing": 0, "updated": 0}}}

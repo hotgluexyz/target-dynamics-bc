@@ -1,0 +1,8 @@
+{
+  "dynamics-bc": {
+    "dimension_mappings": {
+      "class": "CLASS",
+      "department": "DEPARTMENT"
+    }
+  }
+}
