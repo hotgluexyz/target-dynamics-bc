@@ -1,11 +1,8 @@
 """Colocated smoke-test runner for target-dynamics-bc (hotglue-smoke-test)."""
 
-import json
-import os
 import re
 
 import vcr
-
 from hotglue_smoke_test.vcr.target import VCRTargetTestRunner
 
 _BC_API_ENV_IN_URI = re.compile(
