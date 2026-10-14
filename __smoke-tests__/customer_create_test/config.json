@@ -1,8 +1,8 @@
 {
-    "access_token": "eyJ***",
-    "refresh_token": "1.A***",
     "client_id": "0bc***",
     "client_secret": "fTd***",
+    "refresh_token": "1.A***",
+    "access_token": "eyJ***",
     "redirect_uri": "https://hotglue.xyz/callback",
     "environment_name": "Production",
     "expires_in": "4337",
