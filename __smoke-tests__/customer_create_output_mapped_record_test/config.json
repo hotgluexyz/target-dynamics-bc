@@ -5,5 +5,5 @@
     "client_secret": "fTd***",
     "redirect_uri": "https://hotglue.xyz/callback",
     "environment_name": "Production",
-    "snapshot_dir": "__smoke-tests__/customer_create_output_mapped_record_test/snapshots"
+    "snapshot_dir": "__smoke-tests__"
 }

@@ -13,14 +13,14 @@ interactions:
       Content-Type:
       - application/x-www-form-urlencoded
       User-Agent:
-      - python-requests/2.33.0
+      - python-requests/2.34.2
     method: POST
     uri: https://login.microsoftonline.com/common/oauth2/token
   response:
     body:
       string: '{"token_type": "Bearer", "scope": "-Fallback-scrubbed-OALovygOgXpVrbqEjZ",
-        "expires_in": "4542", "ext_expires_in": "4542", "expires_on": "1791987682",
-        "not_before": "1791982839", "resource": "https://api.businesscentral.dynamics.com",
+        "expires_in": "4576", "ext_expires_in": "4576", "expires_on": "1792016273",
+        "not_before": "1792011396", "resource": "https://api.businesscentral.dynamics.com",
         "access_token": "eyJ***", "refresh_token": "1.A***"}'
     headers:
       Cache-Control:
@@ -28,7 +28,7 @@ interactions:
       Content-Length:
       - '287'
       Content-Security-Policy-Report-Only:
-      - object-src 'none'; base-uri 'self'; script-src 'self' 'nonce-mOIgg_uzy6NZgwEXeqFGqA'
+      - object-src 'none'; base-uri 'self'; script-src 'self' 'nonce-yY4c--3JLz7Y6vxALIE1yQ'
         'unsafe-inline' 'unsafe-eval' https://*.msauth.net https://*.msftauth.net
         https://*.msftauthimages.net https://*.msauthimages.net https://*.msidentity.com
         https://*.microsoftonline-p.com https://*.microsoftazuread-sso.com https://*.azureedge.net
@@ -37,7 +37,7 @@ interactions:
       Content-Type:
       - application/json; charset=utf-8
       Date:
-      - Wed, 14 Oct 2026 13:05:39 GMT
+      - Wed, 14 Oct 2026 21:01:35 GMT
       Expires:
       - '-1'
       P3P:
@@ -53,9 +53,9 @@ interactions:
       x-ms-clientdata:
       - e|||microsoftonline.com|none
       x-ms-ests-server:
-      - 2.1.25338.5 - SCUS ProdSlices
+      - 2.1.25338.5 - EUS ProdSlices
       x-ms-request-id:
-      - e5eb5b4c-5845-45a3-8064-93bb36fe2100
+      - 54694662-daac-40ef-8f9b-f6df9b58ec00
       x-ms-srs:
       - 1.P
     status:
@@ -78,7 +78,7 @@ interactions:
       Prefer:
       - odata.continue-on-error=true
       User-Agent:
-      - python-requests/2.33.0
+      - python-requests/2.34.2
     method: POST
     uri: https://api.businesscentral.dynamics.com/v2.0/Production/api/v2.0/$batch
   response:
@@ -108,11 +108,11 @@ interactions:
       Content-Type:
       - application/json
       Date:
-      - Wed, 14 Oct 2026 13:05:42 GMT
+      - Wed, 14 Oct 2026 21:01:36 GMT
       OData-Version:
       - '4.0'
       Request-Id:
-      - 5c166c3b-ae54-4154-b4a6-b3de226f975b
+      - 32ee88d5-7aa7-4cca-85ba-ef2645d8c635
       Server:
       - Microsoft-HTTPAPI/2.0
       Strict-Transport-Security:
@@ -124,9 +124,9 @@ interactions:
       content-length:
       - '1010'
       mise-correlation-id:
-      - 1de57185-97a6-40d2-8b34-74f2fcb35d8f
+      - afcfd6c6-bc88-4db0-867b-a08c09015613
       ms-correlation-x:
-      - 3ff3b089-173b-dabc-60cc-1f884b5eecc9
+      - adea523b-3d99-a9c5-c68f-3a088b75798e
       x-content-type-options:
       - nosniff
     status:
@@ -149,7 +149,7 @@ interactions:
       Prefer:
       - odata.continue-on-error=true
       User-Agent:
-      - python-requests/2.33.0
+      - python-requests/2.34.2
     method: POST
     uri: https://api.businesscentral.dynamics.com/v2.0/Production/api/v2.0/$batch
   response:
@@ -792,11 +792,11 @@ interactions:
       Content-Type:
       - application/json
       Date:
-      - Wed, 14 Oct 2026 13:05:45 GMT
+      - Wed, 14 Oct 2026 21:01:37 GMT
       OData-Version:
       - '4.0'
       Request-Id:
-      - 27ad8a53-8212-4e39-b700-01491a4cdbe2
+      - 013849f8-fc66-4468-9a29-ec2441b58460
       Server:
       - Microsoft-HTTPAPI/2.0
       Strict-Transport-Security:
@@ -808,9 +808,9 @@ interactions:
       content-length:
       - '44365'
       mise-correlation-id:
-      - ecbb9e82-232b-480d-af84-97cae99014d1
+      - 0296ea76-d217-450c-bb8e-6376cc975b68
       ms-correlation-x:
-      - e8042159-dfc6-0f7f-1582-6f4d772ea8e9
+      - 318e6f43-68b5-280a-3822-7c0f35a13551
       x-content-type-options:
       - nosniff
     status:
@@ -833,7 +833,7 @@ interactions:
       Prefer:
       - odata.continue-on-error=true
       User-Agent:
-      - python-requests/2.33.0
+      - python-requests/2.34.2
     method: POST
     uri: https://api.businesscentral.dynamics.com/v2.0/Production/api/v2.0/$batch
   response:
@@ -884,11 +884,11 @@ interactions:
       Content-Type:
       - application/json
       Date:
-      - Wed, 14 Oct 2026 13:05:47 GMT
+      - Wed, 14 Oct 2026 21:01:40 GMT
       OData-Version:
       - '4.0'
       Request-Id:
-      - 8ff86515-968f-456e-9c9d-3940ae613eca
+      - 53c8e690-2adb-41b6-8a95-2e82c0b31770
       Server:
       - Microsoft-HTTPAPI/2.0
       Strict-Transport-Security:
@@ -900,9 +900,9 @@ interactions:
       content-length:
       - '2669'
       mise-correlation-id:
-      - 3e3289dc-5592-4262-a4c1-b12d6b996d83
+      - 3f593895-2ede-4c12-9417-7192d5315e5d
       ms-correlation-x:
-      - 1543a43e-8074-08ac-9e46-b02d036a75b0
+      - c7af6cdb-8302-6a9c-3ea0-609c2e64857a
       x-content-type-options:
       - nosniff
     status:
@@ -925,7 +925,7 @@ interactions:
       Prefer:
       - odata.continue-on-error=true
       User-Agent:
-      - python-requests/2.33.0
+      - python-requests/2.34.2
     method: POST
     uri: https://api.businesscentral.dynamics.com/v2.0/Production/api/v2.0/$batch
   response:
@@ -1066,11 +1066,11 @@ interactions:
       Content-Type:
       - application/json
       Date:
-      - Wed, 14 Oct 2026 13:05:49 GMT
+      - Wed, 14 Oct 2026 21:01:41 GMT
       OData-Version:
       - '4.0'
       Request-Id:
-      - 541ae268-2bdd-43e8-8ec7-eac9547db998
+      - 799a0736-2478-4058-9663-d32042573fd4
       Server:
       - Microsoft-HTTPAPI/2.0
       Strict-Transport-Security:
@@ -1082,9 +1082,9 @@ interactions:
       content-length:
       - '10105'
       mise-correlation-id:
-      - 02c2c61d-f2d6-4b9e-89db-e323c72a6df0
+      - 150f06c7-3ec0-48c1-a8c5-5a2c8951ed60
       ms-correlation-x:
-      - aab38b1c-e7a8-c5b4-6e2f-565b004a00ae
+      - ac790016-5783-9121-44de-c49a87f43652
       x-content-type-options:
       - nosniff
     status:
@@ -1107,7 +1107,7 @@ interactions:
       Prefer:
       - odata.continue-on-error=true
       User-Agent:
-      - python-requests/2.33.0
+      - python-requests/2.34.2
     method: POST
     uri: https://api.businesscentral.dynamics.com/v2.0/Production/api/v2.0/$batch
   response:
@@ -3665,11 +3665,11 @@ interactions:
       Content-Type:
       - application/json
       Date:
-      - Wed, 14 Oct 2026 13:05:51 GMT
+      - Wed, 14 Oct 2026 21:01:43 GMT
       OData-Version:
       - '4.0'
       Request-Id:
-      - b7937d61-45fe-46f1-b780-24538af1d9c9
+      - 1d53baed-b3cc-45eb-a750-b4c047b87442
       Server:
       - Microsoft-HTTPAPI/2.0
       Strict-Transport-Security:
@@ -3681,9 +3681,9 @@ interactions:
       content-length:
       - '184564'
       mise-correlation-id:
-      - cba79cc7-82d5-4c9f-a62e-db75915eb4a6
+      - 2f206e7e-d94d-418b-838f-62b8cb555115
       ms-correlation-x:
-      - c59900fc-fc42-d87b-71b4-6e2364511fb9
+      - 77fb31f1-a101-0606-7d2b-afb54d83c3d3
       x-content-type-options:
       - nosniff
     status:
@@ -3706,7 +3706,7 @@ interactions:
       Prefer:
       - odata.continue-on-error=true
       User-Agent:
-      - python-requests/2.33.0
+      - python-requests/2.34.2
     method: POST
     uri: https://api.businesscentral.dynamics.com/v2.0/Production/api/v2.0/$batch
   response:
@@ -3769,11 +3769,11 @@ interactions:
       Content-Type:
       - application/json
       Date:
-      - Wed, 14 Oct 2026 13:05:56 GMT
+      - Wed, 14 Oct 2026 21:01:45 GMT
       OData-Version:
       - '4.0'
       Request-Id:
-      - ce5e34ee-a28d-4536-8a1e-17341b649504
+      - 12b3e402-0a96-4c1b-a6f4-92bad2593923
       Server:
       - Microsoft-HTTPAPI/2.0
       Strict-Transport-Security:
@@ -3785,9 +3785,9 @@ interactions:
       content-length:
       - '3253'
       mise-correlation-id:
-      - ff924ddc-2f39-4899-a8a6-3e1e1061e85e
+      - 296d35fd-2062-49d0-8b3f-01082bd79ab0
       ms-correlation-x:
-      - 09799bbd-382f-385c-07b2-da6b7d222ed1
+      - ada41734-7dc3-df9a-afd2-0d9b9dd907f7
       x-content-type-options:
       - nosniff
     status:
@@ -3810,7 +3810,7 @@ interactions:
       Prefer:
       - odata.continue-on-error=true
       User-Agent:
-      - python-requests/2.33.0
+      - python-requests/2.34.2
     method: POST
     uri: https://api.businesscentral.dynamics.com/v2.0/Production/api/v2.0/$batch
   response:
@@ -4454,11 +4454,11 @@ interactions:
       Content-Type:
       - application/json
       Date:
-      - Wed, 14 Oct 2026 13:05:57 GMT
+      - Wed, 14 Oct 2026 21:01:46 GMT
       OData-Version:
       - '4.0'
       Request-Id:
-      - eba14e81-1033-41ce-b6ff-cce12c2e03cf
+      - 262a9c34-0b0a-4d67-b823-5b09671a4733
       Server:
       - Microsoft-HTTPAPI/2.0
       Strict-Transport-Security:
@@ -4470,9 +4470,9 @@ interactions:
       content-length:
       - '44355'
       mise-correlation-id:
-      - ae08f588-22c8-49e8-a5ff-bb79b031db56
+      - 271c179f-1d03-43e8-890b-3203c9b1d893
       ms-correlation-x:
-      - 513ef6f3-ee9e-86b3-ad73-65b1f4673ef0
+      - 85d0adf2-281e-07a4-227a-76b93f489445
       x-content-type-options:
       - nosniff
     status:
@@ -4495,7 +4495,7 @@ interactions:
       Prefer:
       - odata.continue-on-error=true
       User-Agent:
-      - python-requests/2.33.0
+      - python-requests/2.34.2
     method: POST
     uri: https://api.businesscentral.dynamics.com/v2.0/Production/api/v2.0/$batch
   response:
@@ -4546,11 +4546,11 @@ interactions:
       Content-Type:
       - application/json
       Date:
-      - Wed, 14 Oct 2026 13:06:01 GMT
+      - Wed, 14 Oct 2026 21:01:48 GMT
       OData-Version:
       - '4.0'
       Request-Id:
-      - 1eed96b7-4533-4f7f-8c3d-258d69356efc
+      - 99300f62-1b23-4392-95f6-deb23ad81b7f
       Server:
       - Microsoft-HTTPAPI/2.0
       Strict-Transport-Security:
@@ -4562,9 +4562,9 @@ interactions:
       content-length:
       - '2670'
       mise-correlation-id:
-      - b7ab8a78-dc4e-44e8-a947-9049e6a95859
+      - 01d2cb6a-73ba-4424-bdc6-3445fe88c93f
       ms-correlation-x:
-      - 82fff20d-6e98-b974-f920-f63dfba9fb2c
+      - c7308f60-e96c-535b-2afa-05ada1a6dc49
       x-content-type-options:
       - nosniff
     status:
@@ -4587,7 +4587,7 @@ interactions:
       Prefer:
       - odata.continue-on-error=true
       User-Agent:
-      - python-requests/2.33.0
+      - python-requests/2.34.2
     method: POST
     uri: https://api.businesscentral.dynamics.com/v2.0/Production/api/v2.0/$batch
   response:
@@ -4615,11 +4615,11 @@ interactions:
       Content-Type:
       - application/json
       Date:
-      - Wed, 14 Oct 2026 13:06:02 GMT
+      - Wed, 14 Oct 2026 21:01:49 GMT
       OData-Version:
       - '4.0'
       Request-Id:
-      - 81aab5ef-eca3-4258-8611-736966944ba9
+      - cfd4cf0e-8637-41c2-b43c-877461b490c2
       Server:
       - Microsoft-HTTPAPI/2.0
       Strict-Transport-Security:
@@ -4631,9 +4631,9 @@ interactions:
       content-length:
       - '828'
       mise-correlation-id:
-      - 162407da-1877-4ffe-bd2e-6182fd92cc22
+      - 80fdcedb-bbbe-4198-800f-18e376282758
       ms-correlation-x:
-      - 9e7eb8f9-8b20-17e4-bf3e-52d97bd9ce9c
+      - 80257249-8bfe-3e7f-329c-1337da2cbc71
       x-content-type-options:
       - nosniff
     status:
@@ -4656,7 +4656,7 @@ interactions:
       Prefer:
       - odata.continue-on-error=true
       User-Agent:
-      - python-requests/2.33.0
+      - python-requests/2.34.2
     method: POST
     uri: https://api.businesscentral.dynamics.com/v2.0/Production/api/v2.0/$batch
   response:
@@ -7206,11 +7206,11 @@ interactions:
       Content-Type:
       - application/json
       Date:
-      - Wed, 14 Oct 2026 13:06:04 GMT
+      - Wed, 14 Oct 2026 21:01:50 GMT
       OData-Version:
       - '4.0'
       Request-Id:
-      - 9f89ab9c-6311-4595-9bd3-c3ba18d74515
+      - 7d0fc870-6efc-4560-b3ac-2970dd73bd61
       Server:
       - Microsoft-HTTPAPI/2.0
       Strict-Transport-Security:
@@ -7222,9 +7222,9 @@ interactions:
       content-length:
       - '184213'
       mise-correlation-id:
-      - 6b45148f-b69c-4cb1-b36e-fdf554c8e989
+      - d06c9b39-ef68-4832-b308-5dfed61dad41
       ms-correlation-x:
-      - 85c47457-35a0-9928-bc62-8c8ba04789f0
+      - 31c77bfb-4936-6b32-7190-0f29940e1e9e
       x-content-type-options:
       - nosniff
     status:
@@ -7247,7 +7247,7 @@ interactions:
       Prefer:
       - odata.continue-on-error=true
       User-Agent:
-      - python-requests/2.33.0
+      - python-requests/2.34.2
     method: POST
     uri: https://api.businesscentral.dynamics.com/v2.0/Production/api/v2.0/$batch
   response:
@@ -7269,11 +7269,11 @@ interactions:
       Content-Type:
       - application/json
       Date:
-      - Wed, 14 Oct 2026 13:06:07 GMT
+      - Wed, 14 Oct 2026 21:01:52 GMT
       OData-Version:
       - '4.0'
       Request-Id:
-      - 065fbf65-5683-48aa-a89a-b75465a01dfb
+      - c136da32-017e-4d1c-b232-6893da82085a
       Server:
       - Microsoft-HTTPAPI/2.0
       Strict-Transport-Security:
@@ -7285,9 +7285,9 @@ interactions:
       content-length:
       - '329'
       mise-correlation-id:
-      - 0b892747-0e47-4b44-b722-e9d3535a42b1
+      - e7e6ab25-b84b-41f2-9d5d-aec46c792081
       ms-correlation-x:
-      - 7763d154-e91b-6c60-160d-d37a6bd40486
+      - 8bd9a44a-2af0-b0b6-cd4c-a60d0065b4c9
       x-content-type-options:
       - nosniff
     status:
