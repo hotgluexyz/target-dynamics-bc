@@ -28,6 +28,8 @@ class TargetDynamicsV2TestRunner(VCRTargetTestRunner):
         "billExternalId",
         "billNumber",
         "externalId",
+        "accountNumber",
+        "journalEntryNumber",
         "journalExternalId",
         "paymentNumber",
         "paymentMethod",
@@ -48,6 +50,7 @@ class TargetDynamicsV2TestRunner(VCRTargetTestRunner):
         "vendorNumber",
         "vendorInvoiceNumber",
         "documentNumber",
+        "displayName",
         "itemId",
     }
     # PRESERVE_VALUES = specific literals that still appear outside those keys
