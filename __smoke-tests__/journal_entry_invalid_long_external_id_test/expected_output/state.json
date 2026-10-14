@@ -1,0 +1,1 @@
+{"bookmarks": {"JournalEntries": [{"success": false, "error": "journalEntryNumber=TEST-10009-1234567891 is too long. The value must be less than or equal to 20 characters.", "externalId": "TEST-10009-1234567891"}]}, "summary": {"JournalEntries": {"success": 0, "fail": 1, "existing": 0, "updated": 0}}}
