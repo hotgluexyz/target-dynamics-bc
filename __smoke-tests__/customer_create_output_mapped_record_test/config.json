@@ -1,0 +1,9 @@
+{
+    "access_token": "eyJ***",
+    "refresh_token": "1.A***",
+    "client_id": "0bc***",
+    "client_secret": "fTd***",
+    "redirect_uri": "https://hotglue.xyz/callback",
+    "environment_name": "Production",
+    "snapshot_dir": "__smoke-tests__"
+}

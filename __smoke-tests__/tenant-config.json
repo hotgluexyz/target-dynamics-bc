@@ -1,0 +1,8 @@
+{
+  "dynamics-bc": {
+    "dimension_mappings": {
+      "class": "PURCHASER",
+      "department": "SALESPERSON"
+    }
+  }
+}

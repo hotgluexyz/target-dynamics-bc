@@ -1,0 +1,1 @@
+{"bookmarks": {"Vendors": [{"success": false, "error": "Could not find dimension with id=None / code=invalid / displayName=None for companyId=0f36f190-8fa5-f111-90e2-6045bdfbabf7"}]}, "summary": {"Vendors": {"success": 0, "fail": 1, "existing": 0, "updated": 0}}}

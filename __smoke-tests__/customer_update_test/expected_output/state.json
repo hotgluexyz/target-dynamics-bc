@@ -1,0 +1,1 @@
+{"bookmarks": {"Customers": [{"externalId": "EXT-1234", "success": true, "id": "4686fdd2-41c7-f111-a056-000d3a6ccad4"}, {"externalId": "EXT-1235", "success": true, "id": "5586fdd2-41c7-f111-a056-000d3a6ccad4"}]}, "summary": {"Customers": {"success": 0, "fail": 0, "existing": 0, "updated": 2}}}
