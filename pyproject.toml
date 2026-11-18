@@ -38,4 +38,4 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.scripts]
 # CLI declaration
-target-dynamics-bc = 'target_dynamics_bc.target:TargetDynamicsV2.cli'
+target-dynamics-bc = 'target_dynamics_bc.taos:TaosTarget.cli'
